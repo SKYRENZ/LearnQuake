@@ -2,8 +2,13 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import './index.css'
+
+// pages
 import InfoHub from './Pages/InfoHub'
-// import About from './Pages/About' // Example: add a new page component
+import Simulation from './Pages/Simulation'
+import Seismology from './Pages/Seismology'
+import About from './Pages/About'
+import NotFound from './Pages/NotFound'
 /*
   ROUTING GUIDE:
   1. Create a new page component in src/Pages (e.g., About.tsx exporting a React component).
@@ -26,7 +31,10 @@ import InfoHub from './Pages/InfoHub'
 
 const router = createBrowserRouter([
   { path: '/', element: <InfoHub /> },
-  // { path: '/about', element: <About /> }, // Example added route
+  { path: '/simulation', element: <Simulation /> },
+  { path: '/seismology', element: <Seismology /> },
+  { path: '/about', element: <About /> },
+  { path: '*', element: <NotFound /> },
 ])
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
