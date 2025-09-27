@@ -1,26 +1,236 @@
+import { useState } from 'react';
 import Header from '../components/Header';
 
 export default function Seismology() {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [frequencyMin, setFrequencyMin] = useState('0.1');
+  const [frequencyMax, setFrequencyMax] = useState('0.1');
+  const [errorMin, setErrorMin] = useState(false);
+  const [errorMax, setErrorMax] = useState(false);
+  const [noise, setNoise] = useState(10);
+
+  const earthquakeData = [
+    { magnitude: '6.1', date: '2025-12-02', depth: '12km' },
+    { magnitude: '6.3', date: '2025-10-12', depth: '18km' },
+    { magnitude: '5.8', date: '2025-07-09', depth: '8km' },
+  ];
+
+  const handleFrequencyChange = (
+    value: string,
+    setValue: React.Dispatch<React.SetStateAction<string>>,
+    setError: React.Dispatch<React.SetStateAction<boolean>>
+  ) => {
+    if (/^\d*\.?\d*$/.test(value)) {
+      setValue(value);
+      setError(false);
+    } else {
+      setValue(value);
+      setError(true);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-white">
       <Header />
       
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="text-center">
-          <h1 className="font-instrument font-bold text-4xl md:text-6xl text-quake-dark-blue mb-8">
-            Seismology Tool
-          </h1>
-          
-          <div className="bg-quake-light-gray border border-quake-light-purple rounded-2xl p-12 max-w-2xl mx-auto">
-            <div className="text-6xl mb-6">📊</div>
-            <h2 className="font-instrument font-bold text-2xl text-black mb-4">
-              Coming Soon
-            </h2>
-            <p className="font-instrument text-lg text-gray-600 mb-6">
-              Advanced seismological analysis tools and real-time earthquake data 
-              visualization are currently being developed. This section will provide 
-              professional-grade earthquake monitoring and analysis capabilities.
-            </p>
+      <main className="max-w-6xl mx-auto px-2 sm:px-4 lg:px-6 py-4">
+        <div className="mb-6 flex items-center justify-between">
+          <p className="font-instrument font-bold text-sm md:text-base text-quake-dark-blue">
+            <span className="text-quake-dark-blue">Friday, </span>
+            <span className="text-quake-medium-blue">September 29</span>
+          </p>
+          <div className="flex-1 flex justify-center">
+            <h1 className="text-2xl font-bold text-center">
+              Seismology <span className="text-indigo-700">Tool</span>
+            </h1>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-4">
+          <div className="xl:col-span-7 space-y-4">
+            <div className="bg-white rounded-lg shadow border border-gray-100 p-4">
+              <h2 className="font-roboto font-semibold text-xs uppercase tracking-wider text-black mb-2">
+                Earthquake Data Selector
+              </h2>
+              <div className="relative mb-4">
+                <input
+                  type="text"
+                  placeholder="Search by magnitude/date/area"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg font-inter font-medium text-xs text-gray-600 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-quake-purple focus:border-transparent"
+                />
+                <svg 
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 w-3 h-3 text-gray-400"
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                >
+                  <path 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round" 
+                    strokeWidth={2} 
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" 
+                  />
+                </svg>
+              </div>
+              <div className="space-y-2">
+                {earthquakeData.map((item, index) => (
+                  <div
+                    key={index}
+                    onClick={() => setSearchQuery(`${item.magnitude} ${item.date} ${item.depth}`)}
+                    className="flex items-center justify-between py-1 border-b border-gray-200 last:border-b-0 cursor-pointer hover:bg-gray-50"
+                  >
+                    <div className="flex items-center space-x-4">
+                      <span className="font-inter font-medium text-xs text-black">{item.magnitude}</span>
+                      <span className="font-inter font-medium text-xs text-black">{item.date}</span>
+                      <span className="font-inter font-medium text-xs text-black">{item.depth}</span>
+                    </div>
+                    <div className="w-6 h-px bg-black"></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg shadow border border-gray-100 p-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4">
+                <h2 className="font-roboto font-medium text-sm uppercase tracking-wider text-black mb-2 sm:mb-0">
+                  Time Series Filtering
+                </h2>
+                <div className="flex items-center space-x-2 w-full sm:w-auto">
+                  <span className="font-roboto font-medium text-xs uppercase text-black">
+                    Noise
+                  </span>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={noise}
+                    onChange={(e) => setNoise(Number(e.target.value))}
+                    className="flex-1 sm:w-32 accent-quake-purple"
+                  />
+                  <span className="font-roboto font-medium text-xs uppercase text-gray-400">
+                    {noise}%
+                  </span>
+                </div>
+              </div>
+              <div className="relative h-40">
+                <div className="absolute inset-0 flex">
+                  <div className="flex flex-col justify-between items-end pr-2 py-2 text-right min-w-[40px]">
+                    <span className="font-roboto font-medium text-[10px] text-gray-400">5000</span>
+                    <span className="font-roboto font-medium text-[10px] text-gray-400">4000</span>
+                    <span className="font-roboto font-medium text-[10px] text-gray-400">3000</span>
+                    <span className="font-roboto font-medium text-[10px] text-gray-400">2000</span>
+                    <span className="font-roboto font-medium text-[10px] text-gray-400">1000</span>
+                  </div>
+                  <div className="flex-1 relative border-l border-b border-quake-border">
+                    <svg 
+                      className="absolute inset-0 w-full h-full"
+                      viewBox="0 0 600 200" 
+                      preserveAspectRatio="none"
+                    >
+                      <path 
+                        d="M10 136L108.881 120.082L221.511 20L320.921 120.082L416.101 78.9224L496.475 38.1616L598 69.5214" 
+                        stroke="#3B38A0" 
+                        strokeWidth="1.5" 
+                        fill="none"
+                      />
+                    </svg>
+                    <div className="absolute -bottom-4 left-0 right-0 flex justify-between text-[8px]">
+                      <span className="text-gray-400">Jan</span>
+                      <span className="text-gray-400">Feb</span>
+                      <span className="text-gray-400">Wed</span>
+                      <span className="text-gray-400">Thu</span>
+                      <span className="text-gray-400">Fri</span>
+                      <span className="text-gray-400">Sat</span>
+                      <span className="text-gray-400">Sun</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="xl:col-span-5 space-y-4">
+            <div className="bg-white rounded-lg shadow border border-gray-100 p-4">
+              <h2 className="font-roboto font-medium text-xs uppercase tracking-wider text-black mb-3">
+                Frequency Range
+              </h2>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={frequencyMin}
+                    onChange={(e) => handleFrequencyChange(e.target.value, setFrequencyMin, setErrorMin)}
+                    className={`w-full px-2 py-1 border font-roboto font-medium text-xs text-black text-center focus:outline-none ${
+                      errorMin ? 'border-red-500' : 'border-black'
+                    }`}
+                  />
+                  {errorMin && (
+                    <span className="absolute -bottom-4 left-0 text-[10px] text-red-500">
+                      Only numbers are accepted
+                    </span>
+                  )}
+                </div>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={frequencyMax}
+                    onChange={(e) => handleFrequencyChange(e.target.value, setFrequencyMax, setErrorMax)}
+                    className={`w-full px-2 py-1 border font-roboto font-medium text-xs text-black text-center focus:outline-none ${
+                      errorMax ? 'border-red-500' : 'border-black'
+                    }`}
+                  />
+                  {errorMax && (
+                    <span className="absolute -bottom-4 left-0 text-[10px] text-red-500">
+                      Only numbers are accepted
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg shadow border border-gray-100 p-4 h-[338px]">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4">
+                <h2 className="font-roboto font-medium text-xs uppercase tracking-wider text-black mb-2 sm:mb-0">
+                  Spectral Analysis
+                </h2>
+                <div className="flex items-center space-x-4">
+                  <div className="flex items-center space-x-1">
+                    <div className="w-2 h-0.5 bg-purple-500"></div>
+                    <span className="font-roboto font-medium text-[10px] text-gray-400">FFT</span>
+                  </div>
+                  <div className="flex items-center space-x-1">
+                    <div className="w-2 h-0.5 bg-pink-500"></div>
+                    <span className="font-roboto font-medium text-[10px] text-gray-400">Spectogram</span>
+                  </div>
+                </div>
+              </div>
+              <div className="relative h-[260px]">
+                <div className="absolute inset-0 flex">
+                  <div className="flex-1 relative border-l border-b border-quake-border">
+                    <svg 
+                      className="absolute inset-0 w-full h-full"
+                      viewBox="0 0 420 338" 
+                      preserveAspectRatio="none"
+                    >
+                      <path 
+                        d="M0.5 310L41.6663 301C48.6168 299.5 55.6697 303.5 60.2313 312L80.9736 330C91.3301 338 111.107 332 115.464 314L131.437 246L144.152 150C147.501 125 176.683 122 182.987 146L189.124 170C195.127 193 222.518 192 227.57 168L248.3 72C253.022 50 277.956 47 285.822 67L299.704 102C306.267 119 325.918 121 334.557 105L362.332 56C365.389 50 370.232 47 375.703 46L419.5 37" 
+                        stroke="#6C60FF" 
+                        strokeWidth="1.5" 
+                        fill="none"
+                      />
+                      <path 
+                        d="M0.5 286L48.471 281C51.372 280.5 54.2946 281 57.0346 282L88.9543 296C98.3078 300 108.718 295 113.39 284L129.021 246C130.606 242 132.919 238 135.744 236L140.081 232C149.636 224 162.463 228 168.25 240L188.738 284C197.27 302 218.804 299 224.705 279L254.91 178C258.956 164 271.275 158 281.805 164L295.333 172C305.858 178 318.172 172 322.223 158L362.707 22C365.408 14 371.994 7 379.65 6L419.5 1" 
+                        stroke="#CE2A96" 
+                        strokeWidth="1.5" 
+                        fill="none"
+                      />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </main>
