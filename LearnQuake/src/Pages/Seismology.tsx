@@ -38,6 +38,14 @@ export default function Seismology() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchResult, setSearchResult] = useState<SearchResult | null>(null);
+  
+  // New filtering states
+  const [magnitudeFilter, setMagnitudeFilter] = useState('');
+  const [magnitudeError, setMagnitudeError] = useState(false);
+  const [sortOrder, setSortOrder] = useState<'recent' | 'oldest' | 'magnitude'>('recent');
+
+  // Add new state for selected earthquake
+  const [selectedEarthquakeId, setSelectedEarthquakeId] = useState<string | null>(null);
 
   // Updated search function for country-only search
   const searchEarthquakes = async (country: string) => {
@@ -114,12 +122,44 @@ export default function Seismology() {
     searchEarthquakes(locationSearch);
   };
 
-  // Filter earthquakes based on search query
-  const filteredEarthquakes = earthquakeData.filter(earthquake =>
-    earthquake.place.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    earthquake.magnitude.toString().includes(searchQuery) ||
-    new Date(earthquake.time).toLocaleDateString().includes(searchQuery)
-  );
+  // Handle magnitude filter change (numbers only)
+  const handleMagnitudeChange = (value: string) => {
+    // Allow empty string, numbers, and decimal points
+    if (value === '' || /^\d*\.?\d*$/.test(value)) {
+      setMagnitudeFilter(value);
+      setMagnitudeError(false);
+    } else {
+      setMagnitudeFilter(value);
+      setMagnitudeError(true);
+    }
+  };
+
+  // Enhanced filter earthquakes function
+  const filteredEarthquakes = earthquakeData
+    .filter(earthquake => {
+      // Text search filter
+      const textMatch = earthquake.place.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                       earthquake.magnitude.toString().includes(searchQuery) ||
+                       new Date(earthquake.time).toLocaleDateString().includes(searchQuery);
+
+      // Magnitude filter
+      const magnitudeMatch = magnitudeFilter === '' || 
+                            earthquake.magnitude >= parseFloat(magnitudeFilter);
+
+      return textMatch && magnitudeMatch;
+    })
+    .sort((a, b) => {
+      switch (sortOrder) {
+        case 'recent':
+          return new Date(b.time).getTime() - new Date(a.time).getTime();
+        case 'oldest':
+          return new Date(a.time).getTime() - new Date(b.time).getTime();
+        case 'magnitude':
+          return b.magnitude - a.magnitude;
+        default:
+          return 0;
+      }
+    });
 
   return (
     <div className="min-h-screen bg-white">
@@ -191,28 +231,50 @@ export default function Seismology() {
                 </div>
               )}
 
-              {/* Filter Search */}
-              <div className="relative mb-4">
-                <input
-                  type="text"
-                  placeholder="Filter results by magnitude, date, or location"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg font-inter font-medium text-xs text-gray-600 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-quake-purple focus:border-transparent"
-                />
-                <svg 
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 w-3 h-3 text-gray-400"
-                  fill="none" 
-                  stroke="currentColor" 
-                  viewBox="0 0 24 24"
-                >
-                  <path 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round" 
-                    strokeWidth={2} 
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" 
-                  />
-                </svg>
+              {/* Enhanced Filtering Section */}
+              <div className="mb-4 space-y-3">
+
+                {/* Magnitude and Sort Filters */}
+                <div className="flex gap-2">
+                  {/* Magnitude Filter */}
+                  <div className="flex-1 relative">
+                    <input
+                      type="text"
+                      placeholder="Min magnitude (e.g., 5.0)"
+                      value={magnitudeFilter}
+                      onChange={(e) => handleMagnitudeChange(e.target.value)}
+                      className={`w-full px-3 py-2 border rounded-lg font-inter font-medium text-xs text-gray-600 placeholder-gray-400 focus:outline-none focus:ring-1 focus:border-transparent ${
+                        magnitudeError 
+                          ? 'border-red-500 focus:ring-red-500' 
+                          : 'border-gray-300 focus:ring-blue-500'
+                      }`}
+                    />
+                    {magnitudeError && (
+                      <span className="absolute -bottom-5 left-0 text-[10px] text-red-500">
+                        Only numbers allowed
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Sort Order */}
+                  <select
+                    value={sortOrder}
+                    onChange={(e) => setSortOrder(e.target.value as 'recent' | 'oldest' | 'magnitude')}
+                    className="px-3 py-2 border border-gray-300 rounded-lg font-inter font-medium text-xs text-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent bg-white"
+                  >
+                    <option value="recent">Recent First</option>
+                    <option value="oldest">Oldest First</option>
+                    <option value="magnitude">By Magnitude</option>
+                  </select>
+                </div>
+
+                {/* Filter Summary */}
+                <div className="flex items-center justify-between text-xs text-gray-500">
+                  <span>
+                    Showing {filteredEarthquakes.length} earthquake{filteredEarthquakes.length !== 1 ? 's' : ''}
+                    {magnitudeFilter && ` with magnitude ≥ ${magnitudeFilter}`}
+                  </span>
+                </div>
               </div>
 
               {/* Error Display */}
@@ -225,7 +287,7 @@ export default function Seismology() {
                 </div>
               )}
 
-              {/* Earthquake Data Display */}
+              {/* Updated Earthquake Data Display */}
               <div className="space-y-2 max-h-60 overflow-y-auto">
                 {loading ? (
                   <div className="text-center py-4">
@@ -235,30 +297,43 @@ export default function Seismology() {
                   filteredEarthquakes.map((item, index) => (
                     <div
                       key={item.id || index}
-                      onClick={() => setSearchQuery(`${item.magnitude} ${new Date(item.time).toLocaleDateString()} ${item.depth}km`)}
-                      className="flex items-center justify-between py-2 px-2 border-b border-gray-200 last:border-b-0 cursor-pointer hover:bg-gray-50 rounded"
+                      onClick={() => setSelectedEarthquakeId(item.id === selectedEarthquakeId ? null : item.id)}
+                      className={`flex items-center justify-between py-2 px-2 border-b border-gray-200 last:border-b-0 cursor-pointer rounded transition-colors duration-200 ${
+                        selectedEarthquakeId === item.id 
+                          ? 'bg-blue-50 border-blue-200' 
+                          : 'hover:bg-gray-50'
+                      }`}
                     >
                       <div className="flex items-center space-x-4">
-                        <span className="font-inter font-bold text-xs text-red-600">
-                          M{item.magnitude?.toFixed(1) || 'N/A'}
-                        </span>
-                        <span className="font-inter font-medium text-xs text-black">
-                          {new Date(item.time).toLocaleDateString()}
-                        </span>
-                        <span className="font-inter font-medium text-xs text-blue-600">
-                          {item.depth?.toFixed(1) || 'N/A'}km deep
-                        </span>
-                        <span className="font-inter font-medium text-xs text-gray-600 truncate max-w-xs" title={item.place}>
-                          {item.place}
-                        </span>
+                        <div className="flex flex-col">
+                          <span className="font-roboto font-bold text-xs text-red-600">
+                            M {item.magnitude.toFixed(1)}
+                          </span>
+                          <span className="font-roboto font-medium text-[10px] text-blue-600">
+                            {item.depth.toFixed(0)}km deep
+                          </span>
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="font-roboto font-medium text-xs text-black">
+                            {item.place}
+                          </span>
+                          <span className="font-roboto font-medium text-[10px] text-gray-400">
+                            {new Date(item.time).toLocaleDateString()} {new Date(item.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
                       </div>
-                      <div className="w-6 h-px bg-black"></div>
+                      <div className={`w-6 h-px transition-colors duration-200 ${
+                        selectedEarthquakeId === item.id ? 'bg-blue-500' : 'bg-black'
+                      }`}></div>
                     </div>
                   ))
                 ) : (
                   <div className="text-center py-4">
                     <div className="text-xs text-gray-500">
-                      {searchResult ? 'No earthquakes found for this search' : 'Search for a location to see earthquake data'}
+                      {earthquakeData.length === 0 
+                        ? "No earthquake data available. Try searching for a country."
+                        : "No earthquakes match your current filters."
+                      }
                     </div>
                   </div>
                 )}
