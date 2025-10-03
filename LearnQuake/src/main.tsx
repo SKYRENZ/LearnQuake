@@ -9,6 +9,8 @@ import Simulation from './Pages/Simulation'
 import Seismology from './Pages/Seismology'
 import About from './Pages/About'
 import NotFound from './Pages/NotFound'
+import Footage from './Pages/Footage'
+
 /*
   ROUTING GUIDE:
   1. Create a new page component in src/Pages (e.g., About.tsx exporting a React component).
@@ -35,6 +37,7 @@ const router = createBrowserRouter([
   { path: '/seismology', element: <Seismology /> },
   { path: '/about', element: <About /> },
   { path: '*', element: <NotFound /> },
+  { path: '/footage', element: <Footage /> },
 ])
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
