@@ -1,19 +1,100 @@
-import { useState } from 'react';
+import React from 'react';
+import { useState, useEffect } from 'react';
 import Header from '../components/Header';
+
+interface EarthquakeData {
+  id: string;
+  magnitude: number;
+  place: string;
+  time: Date;
+  depth: number;
+  latitude: number;
+  longitude: number;
+}
+
+interface SearchResult {
+  searchLocation: {
+    name: string;
+    latitude?: number;
+    longitude?: number;
+    country?: string;
+    fullAddress?: string;
+  };
+  earthquakes: EarthquakeData[];
+  totalFound: number;
+  showing: number;
+  searchMethod?: string; // Add this property
+}
 
 export default function Seismology() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [locationSearch, setLocationSearch] = useState('');
   const [frequencyMin, setFrequencyMin] = useState('0.1');
   const [frequencyMax, setFrequencyMax] = useState('0.1');
   const [errorMin, setErrorMin] = useState(false);
   const [errorMax, setErrorMax] = useState(false);
   const [noise, setNoise] = useState(10);
+  const [earthquakeData, setEarthquakeData] = useState<EarthquakeData[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [searchResult, setSearchResult] = useState<SearchResult | null>(null);
 
-  const earthquakeData = [
-    { magnitude: '6.1', date: '2025-12-02', depth: '12km' },
-    { magnitude: '6.3', date: '2025-10-12', depth: '18km' },
-    { magnitude: '5.8', date: '2025-07-09', depth: '8km' },
-  ];
+  // Search earthquakes by location with enhanced feedback
+  const searchEarthquakes = async (location: string) => {
+    if (!location.trim()) return;
+    
+    setLoading(true);
+    setError(null);
+    
+    try {
+      console.log(`🔍 Searching for: "${location}"`);
+      const response = await fetch(`http://localhost:3001/api/earthquakes/search?location=${encodeURIComponent(location)}&radius=500&timeframe=month&limit=50`);
+      const result = await response.json();
+
+      if (result.success) {
+        setEarthquakeData(result.data.earthquakes);
+        setSearchResult(result.data);
+        
+        // Log search method for debugging
+        console.log(`✅ Search completed using method: ${result.data.searchMethod || 'unknown'}`);
+        console.log(`📊 Found ${result.data.totalFound} earthquakes`);
+      } else {
+        setError(result.error);
+        setEarthquakeData([]);
+        setSearchResult(null);
+      }
+    } catch (err) {
+      setError('Failed to search earthquakes. Make sure the backend server is running.');
+      console.error('Error:', err);
+      setEarthquakeData([]);
+      setSearchResult(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load default earthquakes on component mount
+  useEffect(() => {
+    const loadDefaultEarthquakes = async () => {
+      setLoading(true);
+      try {
+        const response = await fetch('http://localhost:3001/api/earthquakes?timeframe=day&limit=20');
+        const result = await response.json();
+
+        if (result.success) {
+          setEarthquakeData(result.data);
+        }
+      } catch (err) {
+        console.error('Error loading default earthquakes:', err);
+        // Fallback to empty array if backend is not available
+        setEarthquakeData([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadDefaultEarthquakes();
+  }, []);
 
   const handleFrequencyChange = (
     value: string,
@@ -28,6 +109,18 @@ export default function Seismology() {
       setError(true);
     }
   };
+
+  const handleLocationSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    searchEarthquakes(locationSearch);
+  };
+
+  // Filter earthquakes based on search query
+  const filteredEarthquakes = earthquakeData.filter(earthquake =>
+    earthquake.place.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    earthquake.magnitude.toString().includes(searchQuery) ||
+    new Date(earthquake.time).toLocaleDateString().includes(searchQuery)
+  );
 
   return (
     <div className="min-h-screen bg-white">
@@ -52,10 +145,67 @@ export default function Seismology() {
               <h2 className="font-roboto font-semibold text-xs uppercase tracking-wider text-black mb-2">
                 Earthquake Data Selector
               </h2>
+              
+              {/* Enhanced Location Search */}
+              <form onSubmit={handleLocationSearch} className="mb-4">
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Search by location: streets, neighborhoods, cities, states, countries..."
+                    value={locationSearch}
+                    onChange={(e) => setLocationSearch(e.target.value)}
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg font-inter font-medium text-xs text-gray-600 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <button
+                    type="submit"
+                    disabled={loading || !locationSearch.trim()}
+                    className="px-4 py-2 bg-blue-500 text-white rounded-lg text-xs font-medium hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {loading ? 'Searching...' : 'Search'}
+                  </button>
+                </div>
+                
+                {/* Search Examples */}
+                <div className="mt-2 text-xs text-gray-500">
+                  <strong>Examples:</strong> "Hollywood Blvd", "Mission District", "Brooklyn", "Tokyo", "Ring of Fire"
+                </div>
+              </form>
+
+              {/* Enhanced Search Results Info */}
+              {searchResult && (
+                <div className="mb-3 p-3 bg-blue-50 rounded-lg text-xs">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <strong>Search Results:</strong> Found {searchResult.totalFound} earthquakes 
+                      {searchResult.searchLocation.fullAddress ? (
+                        <div className="mt-1">
+                          <strong>Location:</strong> {searchResult.searchLocation.fullAddress}
+                        </div>
+                      ) : (
+                        <span> matching "{searchResult.searchLocation.name}"</span>
+                      )}
+                      {searchResult.showing < searchResult.totalFound && (
+                        <div className="mt-1 text-orange-600">
+                          <strong>Note:</strong> Showing top {searchResult.showing} results
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Search Method Indicator */}
+                    <div className="text-xs text-gray-500 ml-2">
+                      {searchResult.searchMethod === 'coordinates' && '📍'}
+                      {searchResult.searchMethod === 'place_name' && '🔤'}
+                      {searchResult.searchMethod === 'partial_match' && '🔍'}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Filter Search */}
               <div className="relative mb-4">
                 <input
                   type="text"
-                  placeholder="Search by magnitude/date/area"
+                  placeholder="Filter results by magnitude, date, or location"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg font-inter font-medium text-xs text-gray-600 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-quake-purple focus:border-transparent"
@@ -74,21 +224,54 @@ export default function Seismology() {
                   />
                 </svg>
               </div>
-              <div className="space-y-2">
-                {earthquakeData.map((item, index) => (
-                  <div
-                    key={index}
-                    onClick={() => setSearchQuery(`${item.magnitude} ${item.date} ${item.depth}`)}
-                    className="flex items-center justify-between py-1 border-b border-gray-200 last:border-b-0 cursor-pointer hover:bg-gray-50"
-                  >
-                    <div className="flex items-center space-x-4">
-                      <span className="font-inter font-medium text-xs text-black">{item.magnitude}</span>
-                      <span className="font-inter font-medium text-xs text-black">{item.date}</span>
-                      <span className="font-inter font-medium text-xs text-black">{item.depth}</span>
-                    </div>
-                    <div className="w-6 h-px bg-black"></div>
+
+              {/* Error Display */}
+              {error && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-red-600 text-xs">{error}</p>
+                  <p className="text-red-500 text-xs mt-1">
+                    Make sure the backend server is running on port 3001
+                  </p>
+                </div>
+              )}
+
+              {/* Earthquake Data Display */}
+              <div className="space-y-2 max-h-60 overflow-y-auto">
+                {loading ? (
+                  <div className="text-center py-4">
+                    <div className="text-xs text-gray-500">Loading earthquakes...</div>
                   </div>
-                ))}
+                ) : filteredEarthquakes.length > 0 ? (
+                  filteredEarthquakes.map((item, index) => (
+                    <div
+                      key={item.id || index}
+                      onClick={() => setSearchQuery(`${item.magnitude} ${new Date(item.time).toLocaleDateString()} ${item.depth}km`)}
+                      className="flex items-center justify-between py-2 px-2 border-b border-gray-200 last:border-b-0 cursor-pointer hover:bg-gray-50 rounded"
+                    >
+                      <div className="flex items-center space-x-4">
+                        <span className="font-inter font-bold text-xs text-red-600">
+                          M{item.magnitude?.toFixed(1) || 'N/A'}
+                        </span>
+                        <span className="font-inter font-medium text-xs text-black">
+                          {new Date(item.time).toLocaleDateString()}
+                        </span>
+                        <span className="font-inter font-medium text-xs text-blue-600">
+                          {item.depth?.toFixed(1) || 'N/A'}km deep
+                        </span>
+                        <span className="font-inter font-medium text-xs text-gray-600 truncate max-w-xs" title={item.place}>
+                          {item.place}
+                        </span>
+                      </div>
+                      <div className="w-6 h-px bg-black"></div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-4">
+                    <div className="text-xs text-gray-500">
+                      {searchResult ? 'No earthquakes found for this search' : 'Search for a location to see earthquake data'}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
