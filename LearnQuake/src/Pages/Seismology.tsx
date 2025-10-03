@@ -53,6 +53,9 @@ export default function Seismology() {
   // Add new state for selected earthquake
   const [selectedEarthquakeId, setSelectedEarthquakeId] = useState<string | null>(null);
 
+  // Add this state for real-time updates
+  const [currentTime, setCurrentTime] = useState(new Date());
+
   // Generate time series data based on selected earthquake
   const generateTimeSeriesData = (earthquake: EarthquakeData | null): TimeSeriesData[] => {
     if (!earthquake) {
@@ -307,6 +310,15 @@ export default function Seismology() {
     loadDefaultEarthquakes();
   }, []);
 
+  // Add this useEffect for real-time updates
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000); // Update every minute
+
+    return () => clearInterval(timer);
+  }, []);
+
   const handleFrequencyChange = (
     value: string,
     setValue: React.Dispatch<React.SetStateAction<string>>,
@@ -362,6 +374,14 @@ export default function Seismology() {
       }
     });
 
+  // Get formatted current date
+  const currentDate = useMemo(() => {
+    const dayName = currentTime.toLocaleDateString('en-US', { weekday: 'long' });
+    const monthDay = currentTime.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+    
+    return { dayName, monthDay };
+  }, [currentTime]); // Empty dependency array means this runs once when component mounts
+
   return (
     <div className="min-h-screen bg-white">
       <Header />
@@ -369,8 +389,8 @@ export default function Seismology() {
       <main className="max-w-6xl mx-auto px-2 sm:px-4 lg:px-6 py-4">
         <div className="mb-6 flex items-center justify-between">
           <p className="font-instrument font-bold text-sm md:text-base text-quake-dark-blue">
-            <span className="text-quake-dark-blue">Friday, </span>
-            <span className="text-quake-medium-blue">September 29</span>
+            <span className="text-quake-dark-blue">{currentDate.dayName}, </span>
+            <span className="text-quake-medium-blue">{currentDate.monthDay}</span>
           </p>
           <div className="flex-1 flex justify-center">
             <h1 className="text-2xl font-bold text-center">
