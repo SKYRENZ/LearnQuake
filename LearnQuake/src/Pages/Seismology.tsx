@@ -126,6 +126,132 @@ export default function Seismology() {
     return path;
   };
 
+  // Generate spectral analysis data based on selected earthquake
+  const generateSpectralData = (earthquake: EarthquakeData | null) => {
+    if (!earthquake) {
+      // Default spectral data when no earthquake is selected
+      return {
+        fft: Array.from({ length: 50 }, (_, i) => ({
+          frequency: i * 0.4,
+          amplitude: Math.random() * 50 + 10
+        })),
+        spectrogram: Array.from({ length: 50 }, (_, i) => ({
+          frequency: i * 0.4,
+          amplitude: Math.random() * 80 + 20
+        }))
+      };
+    }
+
+    const baseFreq = Math.max(0.1, parseFloat(frequencyMin) || 0.1);
+    const maxFreq = Math.min(20.0, parseFloat(frequencyMax) || 10.0);
+    const freqRange = maxFreq - baseFreq;
+    
+    // Generate FFT data based on earthquake properties
+    const fftData = Array.from({ length: 50 }, (_, i) => {
+      const freq = baseFreq + (i / 49) * freqRange;
+      
+      // Main frequency components based on earthquake characteristics
+      let amplitude = 0;
+      
+      // Primary wave frequency (higher frequency, magnitude dependent)
+      const pWaveFreq = baseFreq * 2;
+      if (Math.abs(freq - pWaveFreq) < 1) {
+        amplitude += earthquake.magnitude * 15;
+      }
+      
+      // Secondary wave frequency (medium frequency)
+      const sWaveFreq = baseFreq * 1.2;
+      if (Math.abs(freq - sWaveFreq) < 0.8) {
+        amplitude += earthquake.magnitude * 12;
+      }
+      
+      // Surface wave frequency (lower frequency, highest amplitude)
+      const surfaceWaveFreq = baseFreq * 0.7;
+      if (Math.abs(freq - surfaceWaveFreq) < 0.5) {
+        amplitude += earthquake.magnitude * 20;
+      }
+      
+      // Depth effect - deeper earthquakes have different frequency distribution
+      const depthFactor = Math.exp(-earthquake.depth / 200);
+      amplitude *= depthFactor;
+      
+      // Add some background noise
+      amplitude += Math.random() * (earthquake.magnitude * 2);
+      
+      return {
+        frequency: freq,
+        amplitude: Math.max(0, amplitude)
+      };
+    });
+
+    // Generate Spectrogram data (time-frequency representation)
+    const spectrogramData = Array.from({ length: 50 }, (_, i) => {
+      const freq = baseFreq + (i / 49) * freqRange;
+      
+      let amplitude = 0;
+      
+      // Different frequency patterns over time
+      const timePhase = (i / 50) * Math.PI * 2;
+      
+      // Lower frequencies dominate early (surface waves arrive later)
+      if (freq < baseFreq * 2) {
+        amplitude += earthquake.magnitude * 18 * Math.sin(timePhase + Math.PI);
+      }
+      
+      // Higher frequencies appear first (P-waves)
+      if (freq > baseFreq * 1.5) {
+        amplitude += earthquake.magnitude * 10 * Math.cos(timePhase);
+      }
+      
+      // Magnitude scaling
+      amplitude *= (earthquake.magnitude / 7); // Normalize to typical earthquake range
+      
+      // Depth effect
+      const depthFactor = Math.exp(-earthquake.depth / 150);
+      amplitude *= depthFactor;
+      
+      // Add noise
+      amplitude += Math.random() * (earthquake.magnitude * 3);
+      
+      return {
+        frequency: freq,
+        amplitude: Math.max(0, amplitude)
+      };
+    });
+
+    return {
+      fft: fftData,
+      spectrogram: spectrogramData
+    };
+  };
+
+  // Generate spectral data
+  const spectralData = useMemo(() => {
+    return generateSpectralData(selectedEarthquake);
+  }, [selectedEarthquake, frequencyMin, frequencyMax]);
+
+  // Create SVG path for spectral analysis
+  const createSpectralPath = (data: { frequency: number; amplitude: number }[], width: number, height: number) => {
+    if (data.length === 0) return '';
+
+    const maxAmplitude = Math.max(...data.map(d => d.amplitude));
+    const minAmplitude = 0;
+    
+    const xScale = (index: number) => (index / (data.length - 1)) * width;
+    const yScale = (amplitude: number) => {
+      const normalized = (amplitude - minAmplitude) / (maxAmplitude - minAmplitude);
+      return height - (normalized * height);
+    };
+
+    let path = `M ${xScale(0)} ${yScale(data[0].amplitude)}`;
+    
+    for (let i = 1; i < data.length; i++) {
+      path += ` L ${xScale(i)} ${yScale(data[i].amplitude)}`;
+    }
+    
+    return path;
+  };
+
   // Updated search function for country-only search
   const searchEarthquakes = async (country: string) => {
     if (!country.trim()) return;
@@ -565,11 +691,16 @@ export default function Seismology() {
               </div>
             </div>
 
-            {/* ...existing spectral analysis component... */}
-            <div className="bg-white rounded-lg shadow border border-gray-100 p-4 h-[338px]">
+            {/* Enhanced Spectral Analysis */}
+            <div className="bg-white rounded-lg shadow border border-gray-100 p-4 h-[380px]">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4">
                 <h2 className="font-roboto font-medium text-xs uppercase tracking-wider text-black mb-2 sm:mb-0">
                   Spectral Analysis
+                  {selectedEarthquake && (
+                    <span className="text-xs text-blue-600 ml-2 normal-case">
+                      - M{selectedEarthquake.magnitude.toFixed(1)}
+                    </span>
+                  )}
                 </h2>
                 <div className="flex items-center space-x-4">
                   <div className="flex items-center space-x-1">
@@ -578,33 +709,226 @@ export default function Seismology() {
                   </div>
                   <div className="flex items-center space-x-1">
                     <div className="w-2 h-0.5 bg-pink-500"></div>
-                    <span className="font-roboto font-medium text-[10px] text-gray-400">Spectogram</span>
+                    <span className="font-roboto font-medium text-[10px] text-gray-400">Spectrogram</span>
                   </div>
                 </div>
               </div>
-              <div className="relative h-[260px]">
+              
+              <div className="relative h-[240px]">
                 <div className="absolute inset-0 flex">
-                  <div className="flex-1 relative border-l border-b border-quake-border">
+                  {/* Y-axis labels */}
+                  <div className="flex flex-col justify-between items-end pr-2 py-2 text-right min-w-[30px]">
+                    {selectedEarthquake ? (
+                      <>
+                        <span className="font-roboto font-medium text-[8px] text-gray-400">
+                          {(selectedEarthquake.magnitude * 20).toFixed(0)}
+                        </span>
+                        <span className="font-roboto font-medium text-[8px] text-gray-400">
+                          {(selectedEarthquake.magnitude * 15).toFixed(0)}
+                        </span>
+                        <span className="font-roboto font-medium text-[8px] text-gray-400">
+                          {(selectedEarthquake.magnitude * 10).toFixed(0)}
+                        </span>
+                        <span className="font-roboto font-medium text-[8px] text-gray-400">
+                          {(selectedEarthquake.magnitude * 5).toFixed(0)}
+                        </span>
+                        <span className="font-roboto font-medium text-[8px] text-gray-400">0</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="font-roboto font-medium text-[8px] text-gray-400">100</span>
+                        <span className="font-roboto font-medium text-[8px] text-gray-400">75</span>
+                        <span className="font-roboto font-medium text-[8px] text-gray-400">50</span>
+                        <span className="font-roboto font-medium text-[8px] text-gray-400">25</span>
+                        <span className="font-roboto font-medium text-[8px] text-gray-400">0</span>
+                      </>
+                    )}
+                  </div>
+                  
+                  {/* Graph area */}
+                  <div className="flex-1 relative border-l border-b border-gray-200">
                     <svg 
                       className="absolute inset-0 w-full h-full"
-                      viewBox="0 0 420 338" 
+                      viewBox="0 0 420 240" 
                       preserveAspectRatio="none"
                     >
+                      {/* Grid lines */}
+                      <defs>
+                        <pattern id="spectral-grid" width="21" height="24" patternUnits="userSpaceOnUse">
+                          <path d="M 21 0 L 0 0 0 24" fill="none" stroke="#f5f5f5" strokeWidth="0.5"/>
+                        </pattern>
+                      </defs>
+                      <rect width="100%" height="100%" fill="url(#spectral-grid)" />
+                      
+                      {/* Wave Markers - Vertical Reference Lines */}
+                      {selectedEarthquake && (() => {
+                        const baseFreq = Math.max(0.1, parseFloat(frequencyMin) || 0.1);
+                        const maxFreq = Math.min(20.0, parseFloat(frequencyMax) || 10.0);
+                        const freqRange = maxFreq - baseFreq;
+                        
+                        // Calculate wave frequencies
+                        const pWaveFreq = baseFreq * 2;
+                        const sWaveFreq = baseFreq * 1.2;
+                        const surfaceWaveFreq = baseFreq * 0.7;
+                        
+                        // Convert frequencies to x positions
+                        const getXPosition = (freq: number) => {
+                          if (freq < baseFreq || freq > maxFreq) return null;
+                          return ((freq - baseFreq) / freqRange) * 420;
+                        };
+                        
+                        const pWaveX = getXPosition(pWaveFreq);
+                        const sWaveX = getXPosition(sWaveFreq);
+                        const surfaceWaveX = getXPosition(surfaceWaveFreq);
+                        
+                        return (
+                          <>
+                            {/* P-wave marker */}
+                            {pWaveX !== null && (
+                              <g>
+                                <line 
+                                  x1={pWaveX} y1="0" 
+                                  x2={pWaveX} y2="240" 
+                                  stroke="#8B5CF6" 
+                                  strokeWidth="2" 
+                                  strokeDasharray="3,3"
+                                  opacity="0.7"
+                                />
+                                <text 
+                                  x={pWaveX + 5} 
+                                  y="20" 
+                                  fill="#8B5CF6" 
+                                  fontSize="10" 
+                                  textAnchor="start"
+                                  fontWeight="bold"
+                                >
+                                  P
+                                </text>
+                              </g>
+                            )}
+                            
+                            {/* S-wave marker */}
+                            {sWaveX !== null && (
+                              <g>
+                                <line 
+                                  x1={sWaveX} y1="0" 
+                                  x2={sWaveX} y2="240" 
+                                  stroke="#10B981" 
+                                  strokeWidth="2" 
+                                  strokeDasharray="3,3"
+                                  opacity="0.7"
+                                />
+                                <text 
+                                  x={sWaveX + 5} 
+                                  y="35" 
+                                  fill="#10B981" 
+                                  fontSize="10" 
+                                  textAnchor="start"
+                                  fontWeight="bold"
+                                >
+                                  S
+                                </text>
+                              </g>
+                            )}
+                            
+                            {/* Surface wave marker */}
+                            {surfaceWaveX !== null && (
+                              <g>
+                                <line 
+                                  x1={surfaceWaveX} y1="0" 
+                                  x2={surfaceWaveX} y2="240" 
+                                  stroke="#EF4444" 
+                                  strokeWidth="2" 
+                                  strokeDasharray="3,3"
+                                  opacity="0.7"
+                                />
+                                <text 
+                                  x={surfaceWaveX + 5} 
+                                  y="50" 
+                                  fill="#EF4444" 
+                                  fontSize="10" 
+                                  textAnchor="start"
+                                  fontWeight="bold"
+                                >
+                                  Sur
+                                </text>
+                              </g>
+                            )}
+                          </>
+                        );
+                      })()}
+                      
+                      {/* FFT Path */}
                       <path 
-                        d="M0.5 310L41.6663 301C48.6168 299.5 55.6697 303.5 60.2313 312L80.9736 330C91.3301 338 111.107 332 115.464 314L131.437 246L144.152 150C147.501 125 176.683 122 182.987 146L189.124 170C195.127 193 222.518 192 227.57 168L248.3 72C253.022 50 277.956 47 285.822 67L299.704 102C306.267 119 325.918 121 334.557 105L362.332 56C365.389 50 370.232 47 375.703 46L419.5 37" 
+                        d={createSpectralPath(spectralData.fft, 420, 240)}
                         stroke="#6C60FF" 
                         strokeWidth="1.5" 
                         fill="none"
                       />
+                      
+                      {/* Spectrogram Path */}
                       <path 
-                        d="M0.5 286L48.471 281C51.372 280.5 54.2946 281 57.0346 282L88.9543 296C98.3078 300 108.718 295 113.39 284L129.021 246C130.606 242 132.919 238 135.744 236L140.081 232C149.636 224 162.463 228 168.25 240L188.738 284C197.27 302 218.804 299 224.705 279L254.91 178C258.956 164 271.275 158 281.805 164L295.333 172C305.858 178 318.172 172 322.223 158L362.707 22C365.408 14 371.994 7 379.65 6L419.5 1" 
+                        d={createSpectralPath(spectralData.spectrogram, 420, 240)}
                         stroke="#CE2A96" 
                         strokeWidth="1.5" 
                         fill="none"
                       />
                     </svg>
+                    
+                    {/* X-axis labels (Frequency) */}
+                    <div className="absolute -bottom-4 left-0 right-0 flex justify-between text-[8px]">
+                      <span className="text-gray-400">{frequencyMin}Hz</span>
+                      <span className="text-gray-400">
+                        {((parseFloat(frequencyMin) + parseFloat(frequencyMax)) / 2).toFixed(1)}Hz
+                      </span>
+                      <span className="text-gray-400">{frequencyMax}Hz</span>
+                    </div>
                   </div>
                 </div>
+              </div>
+              
+              {/* Enhanced spectral info - Fixed layout */}
+              <div className="mt-4 text-xs text-gray-500">
+                {selectedEarthquake ? (
+                  <div className="space-y-2">
+                    {/* First row */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="flex items-center space-x-1">
+                        <div className="w-2 h-2 rounded-full bg-purple-500"></div>
+                        <span className="truncate">P-waves: ~{(parseFloat(frequencyMin) * 2).toFixed(1)}Hz</span>
+                      </div>
+                      <div className="text-right">
+                        <span>Magnitude: {selectedEarthquake.magnitude.toFixed(1)}</span>
+                      </div>
+                    </div>
+                    
+                    {/* Second row */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="flex items-center space-x-1">
+                        <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                        <span className="truncate">S-waves: ~{(parseFloat(frequencyMin) * 1.2).toFixed(1)}Hz</span>
+                      </div>
+                      <div className="text-right">
+                        <span>Depth: {selectedEarthquake.depth.toFixed(0)}km</span>
+                      </div>
+                    </div>
+                    
+                    {/* Third row */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="flex items-center space-x-1">
+                        <div className="w-2 h-2 rounded-full bg-red-500"></div>
+                        <span className="truncate">Surface: ~{(parseFloat(frequencyMin) * 0.7).toFixed(1)}Hz</span>
+                      </div>
+                      <div className="text-right">
+                        <span>Range: {frequencyMin}-{frequencyMax}Hz</span>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-2">
+                    <span>💡 Select an earthquake to view its frequency spectrum with wave markers</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
