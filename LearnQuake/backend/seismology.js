@@ -316,6 +316,94 @@ class USGSEarthquakeService {
       throw error;
     }
   }
+
+  // New method to search earthquakes by country only
+  async searchEarthquakesByCountry(countryName, timeframe = 'month') {
+    try {
+      console.log(`🌍 Searching for earthquakes in country: "${countryName}"`);
+      
+      const allEarthquakes = await this.fetchAllEarthquakes(timeframe);
+      const countryLower = countryName.toLowerCase().trim();
+      
+      // Create country variations for better matching
+      const countryVariations = this.generateCountryVariations(countryLower);
+      
+      console.log(`🔍 Searching with country variations: ${countryVariations.join(', ')}`);
+
+      const matchedEarthquakes = allEarthquakes.filter(earthquake => {
+        const placeLower = earthquake.place.toLowerCase();
+        
+        // Check if any country variation matches
+        return countryVariations.some(variation => {
+          // Look for country name at the end of the place string (after comma)
+          const parts = placeLower.split(',');
+          return parts.some(part => {
+            const trimmedPart = part.trim();
+            return trimmedPart === variation || 
+                   trimmedPart.includes(variation) ||
+                   variation.includes(trimmedPart);
+          });
+        });
+      });
+
+      // Sort by magnitude (highest first)
+      matchedEarthquakes.sort((a, b) => b.magnitude - a.magnitude);
+
+      return {
+        searchLocation: { 
+          name: countryName,
+          country: countryName
+        },
+        earthquakes: matchedEarthquakes,
+        totalFound: matchedEarthquakes.length,
+        showing: Math.min(matchedEarthquakes.length, 50),
+        searchMethod: 'country'
+      };
+    } catch (error) {
+      console.error('Error searching earthquakes by country:', error.message);
+      throw error;
+    }
+  }
+
+  // Generate country name variations for better matching
+  generateCountryVariations(countryName) {
+    const variations = [countryName];
+    
+    // Common country name mappings
+    const countryMappings = {
+      'usa': ['united states', 'us', 'america'],
+      'united states': ['usa', 'us', 'america'],
+      'us': ['united states', 'usa', 'america'],
+      'uk': ['united kingdom', 'britain', 'great britain'],
+      'united kingdom': ['uk', 'britain', 'great britain'],
+      'russia': ['russian federation'],
+      'south korea': ['korea', 'republic of korea'],
+      'north korea': ['korea', 'democratic people\'s republic of korea'],
+      'iran': ['islamic republic of iran'],
+      'venezuela': ['bolivarian republic of venezuela'],
+      'bolivia': ['plurinational state of bolivia'],
+      'tanzania': ['united republic of tanzania'],
+      'macedonia': ['north macedonia', 'former yugoslav republic of macedonia'],
+      'congo': ['democratic republic of the congo', 'republic of the congo'],
+      'ivory coast': ['cote d\'ivoire'],
+      'cape verde': ['cabo verde']
+    };
+
+    // Add variations from mapping
+    if (countryMappings[countryName]) {
+      variations.push(...countryMappings[countryName]);
+    }
+
+    // Check if current name is a variation of any key
+    Object.entries(countryMappings).forEach(([key, values]) => {
+      if (values.includes(countryName)) {
+        variations.push(key, ...values);
+      }
+    });
+
+    // Remove duplicates and return
+    return [...new Set(variations)];
+  }
 }
 
 export default USGSEarthquakeService;

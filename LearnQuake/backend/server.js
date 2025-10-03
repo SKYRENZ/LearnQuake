@@ -55,7 +55,7 @@ app.post("/map", async (req, res) => {
       }),
     });
 
-    //logs to see kung talagang nasesend sa AI yung request and kung AI talaga yung naggeenerate ng data
+    //logs to see kung talagang nasesend sa AI yung request and kung AI talaga yung nageenerate ng data
     console.log("📥 Response status from OpenAI:", response.status);
 
     const data = await response.json();
@@ -146,6 +146,42 @@ app.get('/api/earthquakes', async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// Add this route to your backend server
+app.get('/api/earthquakes/search-by-country', async (req, res) => {
+  try {
+    const { country, timeframe = 'month', limit = 50 } = req.query;
+    
+    if (!country) {
+      return res.json({
+        success: false,
+        error: 'Country parameter is required'
+      });
+    }
+
+    const earthquakeService = new USGSEarthquakeService();
+    const result = await earthquakeService.searchEarthquakesByCountry(country, timeframe);
+    
+    // Limit results if specified
+    if (limit && result.earthquakes.length > limit) {
+      result.earthquakes = result.earthquakes.slice(0, parseInt(limit));
+      result.showing = parseInt(limit);
+    } else {
+      result.showing = result.earthquakes.length;
+    }
+
+    res.json({
+      success: true,
+      data: result
+    });
+  } catch (error) {
+    console.error('Error searching earthquakes by country:', error);
+    res.json({
       success: false,
       error: error.message
     });

@@ -39,24 +39,23 @@ export default function Seismology() {
   const [error, setError] = useState<string | null>(null);
   const [searchResult, setSearchResult] = useState<SearchResult | null>(null);
 
-  // Search earthquakes by location with enhanced feedback
-  const searchEarthquakes = async (location: string) => {
-    if (!location.trim()) return;
+  // Updated search function for country-only search
+  const searchEarthquakes = async (country: string) => {
+    if (!country.trim()) return;
     
     setLoading(true);
     setError(null);
     
     try {
-      console.log(`🔍 Searching for: "${location}"`);
-      const response = await fetch(`http://localhost:3001/api/earthquakes/search?location=${encodeURIComponent(location)}&radius=500&timeframe=month&limit=50`);
+      console.log(`🔍 Searching for earthquakes in: "${country}"`);
+      const response = await fetch(`http://localhost:3001/api/earthquakes/search-by-country?country=${encodeURIComponent(country)}&timeframe=month&limit=50`);
       const result = await response.json();
 
       if (result.success) {
         setEarthquakeData(result.data.earthquakes);
         setSearchResult(result.data);
         
-        // Log search method for debugging
-        console.log(`✅ Search completed using method: ${result.data.searchMethod || 'unknown'}`);
+        console.log(`✅ Search completed for country: ${country}`);
         console.log(`📊 Found ${result.data.totalFound} earthquakes`);
       } else {
         setError(result.error);
@@ -146,12 +145,12 @@ export default function Seismology() {
                 Earthquake Data Selector
               </h2>
               
-              {/* Enhanced Location Search */}
+              {/* Updated Country Search */}
               <form onSubmit={handleLocationSearch} className="mb-4">
                 <div className="flex gap-2">
                   <input
                     type="text"
-                    placeholder="Search by location: streets, neighborhoods, cities, states, countries..."
+                    placeholder="Search by country: Japan, Chile, United States, Turkey, etc..."
                     value={locationSearch}
                     onChange={(e) => setLocationSearch(e.target.value)}
                     className="flex-1 px-3 py-2 border border-gray-300 rounded-lg font-inter font-medium text-xs text-gray-600 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
@@ -165,25 +164,18 @@ export default function Seismology() {
                   </button>
                 </div>
                 
-                {/* Search Examples */}
+                {/* Updated Search Examples */}
                 <div className="mt-2 text-xs text-gray-500">
-                  <strong>Examples:</strong> "Hollywood Blvd", "Mission District", "Brooklyn", "Tokyo", "Ring of Fire"
+                  <strong>Examples:</strong> "Japan", "Chile", "United States", "Turkey", "Indonesia", "Mexico"
                 </div>
               </form>
 
-              {/* Enhanced Search Results Info */}
+              {/* Updated Search Results Info */}
               {searchResult && (
                 <div className="mb-3 p-3 bg-blue-50 rounded-lg text-xs">
                   <div className="flex items-start justify-between">
                     <div>
-                      <strong>Search Results:</strong> Found {searchResult.totalFound} earthquakes 
-                      {searchResult.searchLocation.fullAddress ? (
-                        <div className="mt-1">
-                          <strong>Location:</strong> {searchResult.searchLocation.fullAddress}
-                        </div>
-                      ) : (
-                        <span> matching "{searchResult.searchLocation.name}"</span>
-                      )}
+                      <strong>Search Results:</strong> Found {searchResult.totalFound} earthquakes in {searchResult.searchLocation.name}
                       {searchResult.showing < searchResult.totalFound && (
                         <div className="mt-1 text-orange-600">
                           <strong>Note:</strong> Showing top {searchResult.showing} results
@@ -191,11 +183,9 @@ export default function Seismology() {
                       )}
                     </div>
                     
-                    {/* Search Method Indicator */}
+                    {/* Country Search Indicator */}
                     <div className="text-xs text-gray-500 ml-2">
-                      {searchResult.searchMethod === 'coordinates' && '📍'}
-                      {searchResult.searchMethod === 'place_name' && '🔤'}
-                      {searchResult.searchMethod === 'partial_match' && '🔍'}
+                      🌍
                     </div>
                   </div>
                 </div>
