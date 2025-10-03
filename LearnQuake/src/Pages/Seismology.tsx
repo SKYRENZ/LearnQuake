@@ -1,5 +1,5 @@
 import React from 'react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Header from '../components/Header';
 
 interface EarthquakeData {
@@ -23,14 +23,20 @@ interface SearchResult {
   earthquakes: EarthquakeData[];
   totalFound: number;
   showing: number;
-  searchMethod?: string; // Add this property
+  searchMethod?: string;
+}
+
+interface TimeSeriesData {
+  time: number;
+  amplitude: number;
+  frequency: number;
 }
 
 export default function Seismology() {
   const [searchQuery, setSearchQuery] = useState('');
   const [locationSearch, setLocationSearch] = useState('');
   const [frequencyMin, setFrequencyMin] = useState('0.1');
-  const [frequencyMax, setFrequencyMax] = useState('0.1');
+  const [frequencyMax, setFrequencyMax] = useState('10.0');
   const [errorMin, setErrorMin] = useState(false);
   const [errorMax, setErrorMax] = useState(false);
   const [noise, setNoise] = useState(10);
@@ -46,6 +52,79 @@ export default function Seismology() {
 
   // Add new state for selected earthquake
   const [selectedEarthquakeId, setSelectedEarthquakeId] = useState<string | null>(null);
+
+  // Generate time series data based on selected earthquake
+  const generateTimeSeriesData = (earthquake: EarthquakeData | null): TimeSeriesData[] => {
+    if (!earthquake) {
+      // Default data when no earthquake is selected
+      return Array.from({ length: 100 }, (_, i) => ({
+        time: i,
+        amplitude: Math.sin(i * 0.1) * 50 + Math.random() * (noise / 2) - (noise / 4),
+        frequency: 1.0
+      }));
+    }
+
+    const dataPoints = 200;
+    const baseFreq = Math.max(0.1, parseFloat(frequencyMin) || 0.1);
+    const maxFreq = Math.min(20.0, parseFloat(frequencyMax) || 10.0);
+    
+    return Array.from({ length: dataPoints }, (_, i) => {
+      const t = i / 10; // Time in seconds
+      
+      // Create seismic wave pattern based on earthquake properties
+      const primaryWave = Math.sin(t * baseFreq * 2 * Math.PI) * earthquake.magnitude * 10;
+      const secondaryWave = Math.sin(t * (baseFreq * 1.7) * 2 * Math.PI) * earthquake.magnitude * 7;
+      const surfaceWave = Math.sin(t * (baseFreq * 0.8) * 2 * Math.PI) * earthquake.magnitude * 15;
+      
+      // Depth affects wave amplitude (deeper = more attenuated)
+      const depthFactor = Math.exp(-earthquake.depth / 100);
+      
+      // Distance effect simulation
+      const distanceDecay = Math.exp(-t * 0.1);
+      
+      // Combine waves with noise
+      const amplitude = (primaryWave + secondaryWave + surfaceWave) * depthFactor * distanceDecay;
+      const noiseComponent = (Math.random() - 0.5) * (noise / 5);
+      
+      return {
+        time: t,
+        amplitude: amplitude + noiseComponent,
+        frequency: baseFreq + (Math.random() * (maxFreq - baseFreq))
+      };
+    });
+  };
+
+  // Get selected earthquake object
+  const selectedEarthquake = useMemo(() => {
+    return earthquakeData.find(eq => eq.id === selectedEarthquakeId) || null;
+  }, [earthquakeData, selectedEarthquakeId]);
+
+  // Generate time series data
+  const timeSeriesData = useMemo(() => {
+    return generateTimeSeriesData(selectedEarthquake);
+  }, [selectedEarthquake, noise, frequencyMin, frequencyMax]);
+
+  // Create SVG path for the time series graph
+  const createTimeSeriesPath = (data: TimeSeriesData[], width: number, height: number) => {
+    if (data.length === 0) return '';
+
+    const maxAmplitude = Math.max(...data.map(d => Math.abs(d.amplitude)));
+    const minAmplitude = -maxAmplitude;
+    
+    const xScale = (index: number) => (index / (data.length - 1)) * width;
+    const yScale = (amplitude: number) => {
+      const normalized = (amplitude - minAmplitude) / (maxAmplitude - minAmplitude);
+      return height - (normalized * height);
+    };
+
+    let path = `M ${xScale(0)} ${yScale(data[0].amplitude)}`;
+    
+    for (let i = 1; i < data.length; i++) {
+      path += ` L ${xScale(i)} ${yScale(data[i].amplitude)}`;
+    }
+    
+    return path;
+  };
 
   // Updated search function for country-only search
   const searchEarthquakes = async (country: string) => {
@@ -93,7 +172,6 @@ export default function Seismology() {
         }
       } catch (err) {
         console.error('Error loading default earthquakes:', err);
-        // Fallback to empty array if backend is not available
         setEarthquakeData([]);
       } finally {
         setLoading(false);
@@ -124,7 +202,6 @@ export default function Seismology() {
 
   // Handle magnitude filter change (numbers only)
   const handleMagnitudeChange = (value: string) => {
-    // Allow empty string, numbers, and decimal points
     if (value === '' || /^\d*\.?\d*$/.test(value)) {
       setMagnitudeFilter(value);
       setMagnitudeError(false);
@@ -137,12 +214,10 @@ export default function Seismology() {
   // Enhanced filter earthquakes function
   const filteredEarthquakes = earthquakeData
     .filter(earthquake => {
-      // Text search filter
       const textMatch = earthquake.place.toLowerCase().includes(searchQuery.toLowerCase()) ||
                        earthquake.magnitude.toString().includes(searchQuery) ||
                        new Date(earthquake.time).toLocaleDateString().includes(searchQuery);
 
-      // Magnitude filter
       const magnitudeMatch = magnitudeFilter === '' || 
                             earthquake.magnitude >= parseFloat(magnitudeFilter);
 
@@ -185,7 +260,7 @@ export default function Seismology() {
                 Earthquake Data Selector
               </h2>
               
-              {/* Updated Country Search */}
+              {/* Country Search */}
               <form onSubmit={handleLocationSearch} className="mb-4">
                 <div className="flex gap-2">
                   <input
@@ -204,13 +279,12 @@ export default function Seismology() {
                   </button>
                 </div>
                 
-                {/* Updated Search Examples */}
                 <div className="mt-2 text-xs text-gray-500">
                   <strong>Examples:</strong> "Japan", "Chile", "United States", "Turkey", "Indonesia", "Mexico"
                 </div>
               </form>
 
-              {/* Updated Search Results Info */}
+              {/* Search Results Info */}
               {searchResult && (
                 <div className="mb-3 p-3 bg-blue-50 rounded-lg text-xs">
                   <div className="flex items-start justify-between">
@@ -222,21 +296,14 @@ export default function Seismology() {
                         </div>
                       )}
                     </div>
-                    
-                    {/* Country Search Indicator */}
-                    <div className="text-xs text-gray-500 ml-2">
-                      🌍
-                    </div>
+                    <div className="text-xs text-gray-500 ml-2">🌍</div>
                   </div>
                 </div>
               )}
 
-              {/* Enhanced Filtering Section */}
+              {/* Filtering Section */}
               <div className="mb-4 space-y-3">
-
-                {/* Magnitude and Sort Filters */}
                 <div className="flex gap-2">
-                  {/* Magnitude Filter */}
                   <div className="flex-1 relative">
                     <input
                       type="text"
@@ -256,7 +323,6 @@ export default function Seismology() {
                     )}
                   </div>
 
-                  {/* Sort Order */}
                   <select
                     value={sortOrder}
                     onChange={(e) => setSortOrder(e.target.value as 'recent' | 'oldest' | 'magnitude')}
@@ -268,12 +334,16 @@ export default function Seismology() {
                   </select>
                 </div>
 
-                {/* Filter Summary */}
                 <div className="flex items-center justify-between text-xs text-gray-500">
                   <span>
                     Showing {filteredEarthquakes.length} earthquake{filteredEarthquakes.length !== 1 ? 's' : ''}
                     {magnitudeFilter && ` with magnitude ≥ ${magnitudeFilter}`}
                   </span>
+                  {selectedEarthquake && (
+                    <span className="text-blue-600 font-medium">
+                      📊 Displaying: {selectedEarthquake.place}
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -287,7 +357,7 @@ export default function Seismology() {
                 </div>
               )}
 
-              {/* Updated Earthquake Data Display */}
+              {/* Earthquake Data Display */}
               <div className="space-y-2 max-h-60 overflow-y-auto">
                 {loading ? (
                   <div className="text-center py-4">
@@ -340,10 +410,16 @@ export default function Seismology() {
               </div>
             </div>
 
+            {/* Enhanced Time Series Filtering */}
             <div className="bg-white rounded-lg shadow border border-gray-100 p-4">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4">
                 <h2 className="font-roboto font-medium text-sm uppercase tracking-wider text-black mb-2 sm:mb-0">
                   Time Series Filtering
+                  {selectedEarthquake && (
+                    <span className="text-xs text-blue-600 ml-2 normal-case">
+                      - M{selectedEarthquake.magnitude.toFixed(1)} {selectedEarthquake.place}
+                    </span>
+                  )}
                 </h2>
                 <div className="flex items-center space-x-2 w-full sm:w-auto">
                   <span className="font-roboto font-medium text-xs uppercase text-black">
@@ -362,39 +438,88 @@ export default function Seismology() {
                   </span>
                 </div>
               </div>
+              
               <div className="relative h-40">
                 <div className="absolute inset-0 flex">
+                  {/* Y-axis labels */}
                   <div className="flex flex-col justify-between items-end pr-2 py-2 text-right min-w-[40px]">
-                    <span className="font-roboto font-medium text-[10px] text-gray-400">5000</span>
-                    <span className="font-roboto font-medium text-[10px] text-gray-400">4000</span>
-                    <span className="font-roboto font-medium text-[10px] text-gray-400">3000</span>
-                    <span className="font-roboto font-medium text-[10px] text-gray-400">2000</span>
-                    <span className="font-roboto font-medium text-[10px] text-gray-400">1000</span>
+                    {selectedEarthquake ? (
+                      <>
+                        <span className="font-roboto font-medium text-[10px] text-gray-400">
+                          {(selectedEarthquake.magnitude * 50).toFixed(0)}
+                        </span>
+                        <span className="font-roboto font-medium text-[10px] text-gray-400">
+                          {(selectedEarthquake.magnitude * 25).toFixed(0)}
+                        </span>
+                        <span className="font-roboto font-medium text-[10px] text-gray-400">0</span>
+                        <span className="font-roboto font-medium text-[10px] text-gray-400">
+                          -{(selectedEarthquake.magnitude * 25).toFixed(0)}
+                        </span>
+                        <span className="font-roboto font-medium text-[10px] text-gray-400">
+                          -{(selectedEarthquake.magnitude * 50).toFixed(0)}
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="font-roboto font-medium text-[10px] text-gray-400">50</span>
+                        <span className="font-roboto font-medium text-[10px] text-gray-400">25</span>
+                        <span className="font-roboto font-medium text-[10px] text-gray-400">0</span>
+                        <span className="font-roboto font-medium text-[10px] text-gray-400">-25</span>
+                        <span className="font-roboto font-medium text-[10px] text-gray-400">-50</span>
+                      </>
+                    )}
                   </div>
+                  
+                  {/* Graph area */}
                   <div className="flex-1 relative border-l border-b border-quake-border">
                     <svg 
                       className="absolute inset-0 w-full h-full"
-                      viewBox="0 0 600 200" 
+                      viewBox="0 0 600 160" 
                       preserveAspectRatio="none"
                     >
+                      {/* Grid lines */}
+                      <defs>
+                        <pattern id="grid" width="30" height="32" patternUnits="userSpaceOnUse">
+                          <path d="M 30 0 L 0 0 0 32" fill="none" stroke="#f0f0f0" strokeWidth="0.5"/>
+                        </pattern>
+                      </defs>
+                      <rect width="100%" height="100%" fill="url(#grid)" />
+                      
+                      {/* Zero line */}
+                      <line x1="0" y1="80" x2="600" y2="80" stroke="#e0e0e0" strokeWidth="1" strokeDasharray="2,2"/>
+                      
+                      {/* Time series path */}
                       <path 
-                        d="M10 136L108.881 120.082L221.511 20L320.921 120.082L416.101 78.9224L496.475 38.1616L598 69.5214" 
-                        stroke="#3B38A0" 
+                        d={createTimeSeriesPath(timeSeriesData, 600, 160)}
+                        stroke={selectedEarthquake ? "#3B38A0" : "#9CA3AF"} 
                         strokeWidth="1.5" 
                         fill="none"
                       />
                     </svg>
+                    
+                    {/* X-axis labels */}
                     <div className="absolute -bottom-4 left-0 right-0 flex justify-between text-[8px]">
-                      <span className="text-gray-400">Jan</span>
-                      <span className="text-gray-400">Feb</span>
-                      <span className="text-gray-400">Wed</span>
-                      <span className="text-gray-400">Thu</span>
-                      <span className="text-gray-400">Fri</span>
-                      <span className="text-gray-400">Sat</span>
-                      <span className="text-gray-400">Sun</span>
+                      <span className="text-gray-400">0s</span>
+                      <span className="text-gray-400">5s</span>
+                      <span className="text-gray-400">10s</span>
+                      <span className="text-gray-400">15s</span>
+                      <span className="text-gray-400">20s</span>
                     </div>
                   </div>
                 </div>
+              </div>
+              
+              {/* Graph info */}
+              <div className="mt-3 text-xs text-gray-500">
+                {selectedEarthquake ? (
+                  <div className="flex justify-between">
+                    <span>Amplitude: ±{(selectedEarthquake.magnitude * 50).toFixed(1)} units</span>
+                    <span>Frequency: {frequencyMin}-{frequencyMax} Hz</span>
+                    <span>Depth: {selectedEarthquake.depth.toFixed(0)}km</span>
+                  </div>
+                ) : (
+                  <span>💡 Select an earthquake to view its seismic wave pattern</span>
+                )}
               </div>
             </div>
           </div>
@@ -414,6 +539,7 @@ export default function Seismology() {
                       errorMin ? 'border-red-500' : 'border-black'
                     }`}
                   />
+                  <label className="absolute -top-4 left-0 text-[10px] text-gray-500">Min (Hz)</label>
                   {errorMin && (
                     <span className="absolute -bottom-4 left-0 text-[10px] text-red-500">
                       Only numbers are accepted
@@ -429,6 +555,7 @@ export default function Seismology() {
                       errorMax ? 'border-red-500' : 'border-black'
                     }`}
                   />
+                  <label className="absolute -top-4 left-0 text-[10px] text-gray-500">Max (Hz)</label>
                   {errorMax && (
                     <span className="absolute -bottom-4 left-0 text-[10px] text-red-500">
                       Only numbers are accepted
@@ -438,6 +565,7 @@ export default function Seismology() {
               </div>
             </div>
 
+            {/* ...existing spectral analysis component... */}
             <div className="bg-white rounded-lg shadow border border-gray-100 p-4 h-[338px]">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4">
                 <h2 className="font-roboto font-medium text-xs uppercase tracking-wider text-black mb-2 sm:mb-0">
