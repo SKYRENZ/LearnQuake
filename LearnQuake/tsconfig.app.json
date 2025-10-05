@@ -6,8 +6,6 @@
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "skipLibCheck": true,
-
-    /* Bundler mode */
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
@@ -15,13 +13,15 @@
     "noEmit": true,
     "jsx": "react-jsx",
 
-    /* Path mapping */
+    // Temporary suppression
+    "ignoreDeprecations": "6.0",
+
+    /* Path mapping (still using deprecated baseUrl) */
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
     },
 
-    /* Linting */
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
