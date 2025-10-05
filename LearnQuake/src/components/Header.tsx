@@ -16,6 +16,7 @@ const Header = () => {
     { label: 'Information Hub', path: '/' },
     { label: 'Earthquake Simulation', path: '/simulation' },
     { label: 'Seismology Tool', path: '/seismology' },
+    { label: 'Earthquake Footage & Facts', path: '/footage' },
     { label: 'About Us', path: '/about' },
   ];
 
@@ -34,7 +35,7 @@ const Header = () => {
           </div>
 
           {/* Desktop Navigation and Search */}
-          <div className="hidden md:flex items-center space-x-8 lg:space-x-12">
+          <div className="flex flex-1 justify-center items-center space-x-6">
             {/* Search Bar */}
             <div className="relative">
               <div className="flex items-center bg-quake-light-gray border-2 border-quake-light-purple rounded-2xl px-5 py-3 w-64 lg:w-80 xl:w-96 shadow-sm hover:shadow-md transition-shadow duration-200">
@@ -62,21 +63,21 @@ const Header = () => {
             </div>
 
             {/* Navigation Items */}
-            <nav className="flex items-center space-x-2 lg:space-x-4">
-              {navigationItems.map((item) => (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  className={`font-inter font-semibold text-sm px-4 py-2 rounded-xl transition-all duration-200 ${ 
-                    isActive(item.path)
-                      ? 'bg-quake-light-purple text-quake-light-gray shadow-sm'
-                      : 'text-black hover:text-quake-purple hover:bg-gray-50'
-                  }`}
-                >
-                  {item.label}
-                </Link>
-              ))}
-            </nav>
+              <nav className="flex items-center space-x-2 lg:space-x-4">
+    {navigationItems.map((item) => (
+      <Link
+        key={item.path}
+        to={item.path}
+        className={`font-inter font-medium text-[15px] px-3 py-2 rounded-lg transition-all duration-200 ${
+          isActive(item.path)
+            ? 'bg-quake-light-purple text-quake-light-gray shadow-sm'
+            : 'text-black hover:text-quake-purple hover:bg-gray-50'
+        }`}
+      >
+        {item.label}
+      </Link>
+    ))}
+  </nav>
           </div>
 
           {/* Mobile menu button */}
