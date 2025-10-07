@@ -14,7 +14,7 @@
     "jsx": "react-jsx",
 
     // Temporary suppression
-    "ignoreDeprecations": "6.0",
+    "ignoreDeprecations": "5.0",
 
     /* Path mapping (still using deprecated baseUrl) */
     "baseUrl": ".",
