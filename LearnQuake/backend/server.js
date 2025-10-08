@@ -3,9 +3,11 @@ import dotenv from "dotenv";
 dotenv.config();
 
 import express from "express";
+import cors from "cors";
 import { mapSystemPrompt } from "./mapRules.js";
 
 const app = express();
+app.use(cors({ origin: "http://localhost:5173" }));
 app.use(express.json()); 
 
 const PORT = 5000;
@@ -48,7 +50,7 @@ app.post("/map", async (req, res) => {
       }),
     });
 
-    //logs to see kung talagang nasesend sa AI yung request and kung AI talaga yung naggegenerate ng data
+    //logs to see kung talagang nasesend sa AI yung request and kung AI talaga yung naggeenerate ng data
     console.log("📥 Response status from OpenAI:", response.status);
 
     const data = await response.json();

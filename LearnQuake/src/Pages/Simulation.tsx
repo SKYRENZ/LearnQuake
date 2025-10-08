@@ -17,6 +17,7 @@ import Stroke from 'ol/style/Stroke';
 import Feature from 'ol/Feature';
 import Point from 'ol/geom/Point';
 import Polygon, { circular as polygonCircular } from 'ol/geom/Polygon';
+import Overlay from 'ol/Overlay';
 import type MapBrowserEvent from 'ol/MapBrowserEvent';
 import type { FeatureLike } from 'ol/Feature';
 import { unByKey } from 'ol/Observable';
@@ -40,6 +41,31 @@ interface NominatimResult {
   importance?: number;
 }
 
+interface AIImpactData {
+  estimated_casualties?: string;
+  estimated_injured?: string;
+  damaged_infrastructure?: string;
+  tsunami_risk?: string;
+  landslide_risk?: string;
+}
+
+interface AISimulationAnalysis {
+  circle?: {
+    center?: [number, number];
+    radius_km?: number | string;
+  };
+  impact?: AIImpactData;
+  [key: string]: unknown;
+}
+
+interface HoveredSimulationMeta {
+  place?: string;
+  magnitude?: number;
+  radiusKm?: number;
+  pending?: boolean;
+  error?: string | null;
+}
+
 export default function Simulation() {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<Map | null>(null);
@@ -61,11 +87,21 @@ export default function Simulation() {
   const [simMag, setSimMag] = useState<number | ''>('');
   const [simRadiusKm, setSimRadiusKm] = useState<number | ''>('');
   const [pickingSimLocation, setPickingSimLocation] = useState(false);
+  const [isSimAnalyzing, setIsSimAnalyzing] = useState(false);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
+  const [overlayReady, setOverlayReady] = useState(false);
+  const [hoveredSimAnalysis, setHoveredSimAnalysis] =
+    useState<AISimulationAnalysis | null>(null);
+  const [hoveredSimMeta, setHoveredSimMeta] =
+    useState<HoveredSimulationMeta | null>(null);
 
   const quakeSourceRef = useRef<VectorSource | null>(null);
   const searchMarkerSourceRef = useRef<VectorSource | null>(null);
   const simSourceRef = useRef<VectorSource | null>(null);
   const simCoordRef = useRef<[number, number] | null>(null);
+  const popupContainerRef = useRef<HTMLDivElement | null>(null);
+  const popupRef = useRef<Overlay | null>(null);
+  const hoveredSimFeatureRef = useRef<FeatureLike | null>(null);
 
   // Init map only once
   useEffect(() => {
@@ -167,6 +203,21 @@ export default function Simulation() {
     });
     map.addLayer(simLayer);
 
+    const popupEl = document.createElement('div');
+    popupEl.className =
+      'pointer-events-none rounded-lg bg-quake-dark-blue text-white text-xs px-3 py-2 shadow-lg border border-white/10 hidden max-w-[240px]';
+    popupContainerRef.current = popupEl;
+
+    const popupOverlay = new Overlay({
+      element: popupEl,
+      positioning: 'bottom-center',
+      stopEvent: false,
+      offset: [0, -12]
+    });
+    map.addOverlay(popupOverlay);
+    popupRef.current = popupOverlay;
+    setOverlayReady(true);
+
     const FEED_URL =
       'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson';
 
@@ -189,6 +240,14 @@ export default function Simulation() {
 
     return () => {
       clearInterval(interval);
+      if (popupRef.current) {
+        map.removeOverlay(popupRef.current);
+        const el = popupContainerRef.current;
+        if (el?.parentNode) el.parentNode.removeChild(el);
+        popupRef.current = null;
+        popupContainerRef.current = null;
+        setOverlayReady(false);
+      }
       map.setTarget(undefined);
       mapRef.current = null; // allow re-initialisation after refresh
     };
@@ -223,7 +282,8 @@ export default function Simulation() {
         coverage: true,
         mag: simMag,
         radius: radiusMeters,
-        center: simCoordRef.current
+        center: simCoordRef.current,
+        place: simPlace || 'Custom Location'
       });
       src.addFeature(circle);
     }
@@ -345,179 +405,510 @@ export default function Simulation() {
     const coord = simCoordRef.current;
     src.clear();
 
+    const magnitude = Number(simMag);
+    const radiusKm = Number(simRadiusKm);
+
     const point = new Feature({
       geometry: new Point(coord),
-      mag: simMag,
+      mag: magnitude,
       place: simPlace || 'Custom Location'
     });
 
-    const radiusMeters = Number(simRadiusKm) * 1000;
+    const radiusMeters = radiusKm * 1000;
     const polygon = createGeodesicPolygon(coord, radiusMeters);
     const circle = new Feature({
       geometry: polygon,
       coverage: true,
-      mag: simMag,
+      mag: magnitude,
       radius: radiusMeters,
-      center: coord
+      center: coord,
+      place: simPlace || 'Custom Location'
     });
+    circle.set('analysis', null);
+    circle.set('analysisError', null);
 
     src.addFeatures([point, circle]);
 
     if (mapRef.current) {
-      mapRef.current.getView().fit(circle.getGeometry().getExtent(), {
+      mapRef.current.getView().fit(polygon.getExtent(), {
         padding: [80, 80, 80, 80],
         maxZoom: 12,
         duration: 600
       });
     }
+
+    void requestSimulationAnalysis(circle, coord, magnitude, radiusKm);
   }
 
-  return (
-    <div className="min-h-screen bg-white">
-      <Header />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
-        <div className="text-left">
-          <h1 className="font-instrument font-bold text-2xl md:text-4xl text-quake-dark-blue mb-8">
-            Earthquake Simulation
-          </h1>
+  const renderAnalysisPopup = useCallback((feature: FeatureLike) => {
+    const container = popupContainerRef.current;
+    if (!container) return;
 
-          <div className="mt-10 text-left">
-            {/* Search Bar */}
-            <form
-              onSubmit={performSearch}
-              className="w-full max-w-3xl flex flex-col md:flex-row gap-3 mb-4 items-stretch md:items-center"
-            >
+    container.replaceChildren();
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'space-y-1';
+
+    const title = document.createElement('div');
+    title.className = 'font-semibold uppercase tracking-wide text-[10px] text-white/80';
+    title.textContent = 'AI Impact Analysis';
+    wrapper.appendChild(title);
+
+    const pending = feature.get('analysisPending') as boolean | undefined;
+    const errorMsg = feature.get('analysisError') as string | undefined;
+    const analysis = feature.get('analysis') as AISimulationAnalysis | undefined;
+
+    const body = document.createElement('div');
+    body.className = 'text-[11px] leading-tight';
+
+    if (pending) {
+      body.textContent = 'Generating analysis…';
+    } else if (errorMsg) {
+      body.textContent = errorMsg;
+    } else if (analysis?.impact) {
+      const impact = analysis.impact;
+      const list = document.createElement('ul');
+      list.className = 'space-y-[2px]';
+      const rows: Array<[string, string | undefined]> = [
+        ['Estimated casualties', impact.estimated_casualties],
+        ['Estimated injured', impact.estimated_injured],
+        ['Damaged infrastructure', impact.damaged_infrastructure],
+        ['Tsunami risk', impact.tsunami_risk],
+        ['Landslide risk', impact.landslide_risk]
+      ];
+      rows.forEach(([label, value]) => {
+        const item = document.createElement('li');
+        item.textContent = `${label}: ${value ?? 'unknown'}`;
+        list.appendChild(item);
+      });
+      body.appendChild(list);
+    } else {
+      body.textContent = 'No analysis available.';
+    }
+
+    wrapper.appendChild(body);
+
+    const radius = analysis?.circle?.radius_km;
+    if (radius !== undefined) {
+      const footer = document.createElement('div');
+      footer.className = 'text-[10px] text-white/70 pt-1';
+      const radiusText =
+        typeof radius === 'number' ? radius.toFixed(1) : String(radius);
+      footer.textContent = `Radius: ${radiusText} km`;
+      wrapper.appendChild(footer);
+    }
+
+    container.appendChild(wrapper);
+  }, []);
+
+  const requestSimulationAnalysis = useCallback(
+    async (
+      coverageFeature: Feature<Polygon>,
+      coord3857: [number, number],
+      magnitude: number,
+      radiusKm: number
+    ) => {
+      setIsSimAnalyzing(true);
+      setAnalysisError(null);
+      coverageFeature.set('analysisPending', true);
+      coverageFeature.set('analysis', null);
+      coverageFeature.set('analysisError', null);
+
+      try {
+        const [lon, lat] = toLonLat(coord3857);
+        const res = await fetch('http://localhost:5000/map', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            place: simPlace || 'Custom Location',
+            magnitude,
+            areaCoverage: radiusKm,
+            coordinates: [lon, lat]
+          })
+        });
+
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+
+        const payload = (await res.json()) as {
+          analysis?: AISimulationAnalysis;
+        };
+
+        if (payload?.analysis) {
+          coverageFeature.set('analysis', payload.analysis);
+        } else {
+          coverageFeature.set('analysisError', 'No AI analysis returned.');
+          setAnalysisError('AI did not return analysis.');
+        }
+      } catch (err) {
+        console.error('Failed to fetch AI analysis', err);
+        coverageFeature.set('analysisError', 'Failed to fetch AI analysis.');
+        setAnalysisError('Failed to fetch AI analysis.');
+      } finally {
+        coverageFeature.set('analysisPending', false);
+        if (hoveredSimFeatureRef.current === coverageFeature) {
+          const radiusMeters =
+            (coverageFeature.get('radius') as number | undefined) ?? undefined;
+          setHoveredSimMeta({
+            place:
+              (coverageFeature.get('place') as string | undefined) ??
+              'Simulated Event',
+            magnitude: coverageFeature.get('mag') as number | undefined,
+            radiusKm: radiusMeters ? radiusMeters / 1000 : undefined,
+            pending: coverageFeature.get('analysisPending') as boolean | undefined,
+            error:
+              (coverageFeature.get('analysisError') as string | undefined) ?? null
+          });
+          setHoveredSimAnalysis(
+            (coverageFeature.get('analysis') as AISimulationAnalysis | null) ?? null
+          );
+        }
+        setIsSimAnalyzing(false);
+      }
+    },
+    [simPlace]
+  );
+
+  useEffect(() => {
+    if (!overlayReady) return;
+
+    const map = mapRef.current;
+    const overlay = popupRef.current;
+    const container = popupContainerRef.current;
+    if (!map || !overlay || !container) return;
+
+    const handleMove = (evt: MapBrowserEvent<PointerEvent>) => {
+      let targetFeature: FeatureLike | null = null;
+      map.forEachFeatureAtPixel(evt.pixel, feature => {
+        if (feature.get('coverage')) {
+          targetFeature = feature;
+          return true;
+        }
+        return false;
+      });
+
+      const targetElement = map.getTargetElement();
+
+      if (targetFeature) {
+        hoveredSimFeatureRef.current = targetFeature;
+        const radiusMeters = targetFeature.get('radius') as number | undefined;
+        setHoveredSimMeta({
+          place:
+            (targetFeature.get('place') as string | undefined) ??
+            'Simulated Event',
+          magnitude: targetFeature.get('mag') as number | undefined,
+          radiusKm: radiusMeters ? radiusMeters / 1000 : undefined,
+          pending: targetFeature.get('analysisPending') as boolean | undefined,
+          error:
+            (targetFeature.get('analysisError') as string | undefined) ?? null
+        });
+        setHoveredSimAnalysis(
+          (targetFeature.get('analysis') as AISimulationAnalysis | null) ?? null
+        );
+        renderAnalysisPopup(targetFeature);
+        overlay.setPosition(evt.coordinate);
+        container.classList.remove('hidden');
+        if (targetElement) targetElement.style.cursor = 'pointer';
+      } else {
+        hoveredSimFeatureRef.current = null;
+        setHoveredSimMeta(null);
+        setHoveredSimAnalysis(null);
+        overlay.setPosition(undefined);
+        container.classList.add('hidden');
+        if (targetElement) targetElement.style.cursor = '';
+      }
+    };
+
+    const handleLeave = () => {
+      overlay.setPosition(undefined);
+      container.classList.add('hidden');
+      const targetElement = map.getTargetElement();
+      if (targetElement) targetElement.style.cursor = '';
+      hoveredSimFeatureRef.current = null;
+      setHoveredSimMeta(null);
+      setHoveredSimAnalysis(null);
+    };
+
+    map.on('pointermove', handleMove);
+    const viewport = map.getViewport();
+    viewport.addEventListener('mouseleave', handleLeave);
+
+    return () => {
+      map.un('pointermove', handleMove);
+      viewport.removeEventListener('mouseleave', handleLeave);
+    };
+  }, [overlayReady, renderAnalysisPopup]);
+
+  return (
+    <div className="flex flex-col h-screen overflow-hidden">
+      <Header />
+      <div className="flex-1 flex overflow-hidden">
+        <div className="relative hidden md:flex md:flex-col md:w-1/3 lg:w-1/4 xl:w-1/5 p-4 border-r border-white/10 bg-quake-dark-blue">
+          <h2 className="text-lg font-bold mb-4">Earthquake Simulator</h2>
+          <form
+            onSubmit={e => {
+              e.preventDefault();
+              commitSimulatedEvent();
+            }}
+            className="space-y-4"
+          >
+            <div>
+              <label
+                htmlFor="location"
+                className="block text-sm font-medium text-white/90"
+              >
+                Location
+              </label>
               <input
-                value={query}
-                onChange={e => setQuery(e.target.value)}
-                placeholder="Search place (e.g. Tokyo, Chile, San Andreas Fault)"
-                className="flex-1 border border-quake-light-purple rounded-lg px-4 py-2 font-instrument text-sm focus:outline-none focus:ring-2 focus:ring-quake-light-purple"
+                type="text"
+                id="location"
+                value={simPlace}
+                onChange={e => setSimPlace(e.target.value)}
+                disabled={pickingSimLocation}
+                className="mt-1 block w-full p-2 text-sm rounded-md bg-white/5 border border-white/10 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                placeholder="Enter a location"
               />
+            </div>
+            <div>
+              <label
+                htmlFor="magnitude"
+                className="block text-sm font-medium text-white/90"
+              >
+                Magnitude
+              </label>
+              <input
+                type="number"
+                id="magnitude"
+                value={simMag}
+                onChange={e => setSimMag(e.target.value)}
+                className="mt-1 block w-full p-2 text-sm rounded-md bg-white/5 border border-white/10 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                placeholder="Enter magnitude (e.g., 5.0)"
+                min="0"
+                step="0.1"
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="radius"
+                className="block text-sm font-medium text-white/90"
+              >
+                Radius (km)
+              </label>
+              <input
+                type="number"
+                id="radius"
+                value={simRadiusKm}
+                onChange={e => setSimRadiusKm(e.target.value)}
+                className="mt-1 block w-full p-2 text-sm rounded-md bg-white/5 border border-white/10 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                placeholder="Enter radius in kilometers"
+                min="0"
+                step="0.1"
+              />
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setPickingSimLocation(!pickingSimLocation)}
+                className="flex-1 px-4 py-2 text-sm font-semibold rounded-md transition-all flex items-center justify-center gap-2
+                bg-white text-quake-dark-blue hover:bg-gray-100 disabled:opacity-50"
+                disabled={isSimAnalyzing}
+              >
+                {pickingSimLocation ? (
+                  <>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-5 w-5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      strokeWidth={2}
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M12 4v16m8-8H4"
+                      />
+                    </svg>
+                    Pick Location
+                  </>
+                ) : (
+                  <>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-5 w-5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      strokeWidth={2}
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M12 4v16m8-8H4"
+                      />
+                    </svg>
+                    Picking Mode
+                  </>
+                )}
+              </button>
               <button
                 type="submit"
-                disabled={isSearching}
-                className="bg-quake-dark-blue text-white font-instrument text-sm px-5 py-2 rounded-lg disabled:opacity-50"
+                className="flex-1 px-4 py-2 text-sm font-semibold rounded-md transition-all flex items-center justify-center gap-2
+                bg-quake-red-600 text-white hover:bg-quake-red-700 disabled:opacity-50"
+                disabled={
+                  isSimAnalyzing ||
+                  !simPlace ||
+                  simMag === '' ||
+                  simRadiusKm === ''
+                }
               >
-                {isSearching ? 'Searching...' : 'Search'}
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={2}
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M12 4v16m8-8H4"
+                  />
+                </svg>
+                Simulate Event
               </button>
-            </form>
-            {results.length > 1 && (
-              <div className="mb-4 bg-white border border-quake-light-purple rounded-lg p-3 max-h-48 overflow-auto shadow-sm">
-                <div className="text-xs font-semibold mb-2 text-gray-700">
-                  Results:
-                </div>
-                <ul className="space-y-1">
-                  {results.map((r, i) => (
-                    <li key={i}>
-                      <button
-                        onClick={() => flyToResult(r)}
-                        className="w-full text-left text-xs font-instrument bg-white text-black px-3 py-2 rounded-md hover:bg-quake-light-gray hover:underline focus:outline-none focus:ring-2 focus:ring-quake-light-purple"
-                      >
-                        {r.display_name}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            <h2 className="font-instrument font-bold text-2xl text-quake-dark-blue mb-4">
-              Global Tectonic Map (OpenLayers)
-            </h2>
-            <div className="mb-6 space-y-3 font-instrument text-sm">
-              <div className="flex flex-wrap gap-3 items-end">
-                <button
-                  type="button"
-                  onClick={() => setPickingSimLocation(true)}
-                  className="px-3 py-2 rounded bg-quake-dark-blue text-white disabled:opacity-40"
-                  disabled={pickingSimLocation}
-                >
-                  {pickingSimLocation ? 'Click map…' : 'Pick Location'}
-                </button>
-                <div className="flex flex-col">
-                  <label className="text-xs font-semibold">Place</label>
-                  <input
-                    value={simPlace}
-                    onChange={e => setSimPlace(e.target.value)}
-                    placeholder="Pick or type"
-                    className="border rounded px-2 py-1"
-                    style={{ minWidth: 220 }}
-                  />
-                </div>
-                <div className="flex flex-col">
-                  <label className="text-xs font-semibold">Magnitude</label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    value={simMag}
-                    onChange={e => setSimMag(e.target.value === '' ? '' : Number(e.target.value))}
-                    className="border rounded px-2 py-1 w-24"
-                  />
-                </div>
-                  <div className="flex flex-col">
-                    <label className="text-xs font-semibold">Radius (km)</label>
-                    <input
-                      type="number"
-                      min="1"
-                      value={simRadiusKm}
-                      onChange={e => setSimRadiusKm(e.target.value === '' ? '' : Number(e.target.value))}
-                      className="border rounded px-2 py-1 w-24"
-                    />
-                  </div>
-                <button
-                  type="button"
-                  onClick={commitSimulatedEvent}
-                  disabled={!simCoordRef.current || simMag === '' || simRadiusKm === ''}
-                  className="px-3 py-2 rounded bg-green-600 text-white disabled:opacity-40"
-                >
-                  Add Simulated Event
-                </button>
-              </div>
-              <p className="text-gray-500">
-                Pick location, enter magnitude & radius to visualize a hypothetical event.
-              </p>
             </div>
-            <div
-              ref={mapContainerRef}
-              className="rounded-xl border border-quake-light-purple overflow-hidden shadow-sm"
-              style={{ width: '100%', height: 480 }}
-            />
-            <p className="mt-4 text-sm text-gray-500 font-instrument">
-              Circles: past 24h earthquakes (USGS). Search uses OpenStreetMap Nominatim.
-            </p>
-
-            {selected && (
-              <div className="mt-4 p-4 rounded-lg border border-quake-light-purple bg-quake-light-gray font-instrument text-sm">
-                <div>
-                  <span className="font-semibold">Magnitude:</span>{' '}
-                  {selected.mag?.toFixed(1)}
-                </div>
-                <div>
-                  <span className="font-semibold">Location:</span>{' '}
-                  {selected.place}
-                </div>
-                {selected.time && (
-                  <div>
-                    <span className="font-semibold">Time (UTC):</span>{' '}
-                    {new Date(selected.time).toUTCString()}
-                  </div>
-                )}
-                {selected.url && (
-                  <a
-                    href={selected.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-quake-dark-blue underline"
-                  >
-                    USGS details
-                  </a>
-                )}
-              </div>
+            {isSimAnalyzing && (
+              <p className="text-xs text-gray-300 font-instrument">
+                Generating AI impact analysis…
+              </p>
             )}
+            {analysisError && !isSimAnalyzing && (
+              <p className="text-xs text-red-400 font-instrument">
+                {analysisError}
+              </p>
+            )}
+          </form>
+          <div className="mt-auto pt-4 border-t border-white/10">
+            <p className="text-xs text-white/70">
+              Data from USGS Earthquake Hazards Program
+            </p>
           </div>
         </div>
-      </main>
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <div className="flex-1 h-0">
+            <div
+              ref={mapContainerRef}
+              className="w-full h-full"
+            />
+          </div>
+          <div className="p-4 bg-quake-dark-blue border-t border-white/10">
+            <div className="max-w-2xl mx-auto space-y-4">
+              <div>
+                <h2 className="text-lg font-bold mb-2">Event Details</h2>
+                <div className="bg-white/5 p-4 rounded-lg shadow-md space-y-2">
+                  {selected ? (
+                    <>
+                      <div className="text-sm text-white/80">
+                        <strong>Location:</strong> {selected.place}
+                      </div>
+                      <div className="text-sm text-white/80">
+                        <strong>Magnitude:</strong> {selected.mag}
+                      </div>
+                      <div className="text-sm text-white/80">
+                        <strong>Time:</strong>{' '}
+                        {new Date(selected.time).toLocaleString()}
+                      </div>
+                      <div className="text-sm text-white/80">
+                        <strong>Details:</strong>{' '}
+                        <a
+                          href={selected.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-400 hover:underline"
+                        >
+                          USGS Event Page
+                        </a>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-sm text-white/70">
+                      No event selected. Click on an earthquake on the map to see
+                      details.
+                    </div>
+                  )}
+                </div>
+              </div>
+              {hoveredSimMeta && (
+                <div className="bg-white/5 p-4 rounded-lg shadow-md space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="text-base font-semibold text-white">
+                      Simulated Impact (AI)
+                    </h3>
+                    {hoveredSimMeta.radiusKm !== undefined && (
+                      <span className="text-xs text-white/70">
+                        Radius: {hoveredSimMeta.radiusKm.toFixed(1)} km
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-sm text-white/80 space-y-1">
+                    {hoveredSimMeta.place && (
+                      <p>
+                        <span className="text-white/60">Location:</span>{' '}
+                        {hoveredSimMeta.place}
+                      </p>
+                    )}
+                    {hoveredSimMeta.magnitude !== undefined && (
+                      <p>
+                        <span className="text-white/60">Magnitude:</span>{' '}
+                        {hoveredSimMeta.magnitude}
+                      </p>
+                    )}
+                  </div>
+                  {hoveredSimMeta.pending ? (
+                    <p className="text-sm text-white/70">
+                      Generating AI impact analysis…
+                    </p>
+                  ) : hoveredSimMeta.error ? (
+                    <p className="text-sm text-red-400">
+                      {hoveredSimMeta.error}
+                    </p>
+                  ) : hoveredSimAnalysis?.impact ? (
+                    <ul className="text-sm text-white/80 space-y-1">
+                      <li>
+                        Estimated casualties:{' '}
+                        {hoveredSimAnalysis.impact.estimated_casualties ?? 'unknown'}
+                      </li>
+                      <li>
+                        Estimated injured:{' '}
+                        {hoveredSimAnalysis.impact.estimated_injured ?? 'unknown'}
+                      </li>
+                      <li>
+                        Damaged infrastructure:{' '}
+                        {hoveredSimAnalysis.impact.damaged_infrastructure ?? 'unknown'}
+                      </li>
+                      <li>
+                        Tsunami risk:{' '}
+                        {hoveredSimAnalysis.impact.tsunami_risk ?? 'unknown'}
+                      </li>
+                      <li>
+                        Landslide risk:{' '}
+                        {hoveredSimAnalysis.impact.landslide_risk ?? 'unknown'}
+                      </li>
+                    </ul>
+                  ) : (
+                    <p className="text-sm text-white/70">
+                      Hover over a simulated coverage circle to view AI insights.
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

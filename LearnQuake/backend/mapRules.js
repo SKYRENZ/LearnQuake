@@ -13,6 +13,6 @@ Rules:
   { "center": [longitude, latitude], "radius_km": <number> }
 - Impact data must include:
   { "estimated_casualties": "<range>", "estimated_injured": "<range>", "damaged_infrastructure": "<description>", "tsunami_risk": "<low/medium/high>", "landslide_risk": "<low/medium/high>" }
-- All ranges should be realistic and magnitude-dependent.
-- If the input is unrealistic, still return valid JSON but mark values as "unknown".
+- All ranges should be probable results and magnitude-dependent.
+- If the input is too unrealistic, still return valid JSON but mark values as "unknown".
 `;
