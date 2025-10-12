@@ -94,6 +94,10 @@ export default function Simulation() {
     useState<AISimulationAnalysis | null>(null);
   const [hoveredSimMeta, setHoveredSimMeta] =
     useState<HoveredSimulationMeta | null>(null);
+  const [simSummaryMeta, setSimSummaryMeta] =
+    useState<HoveredSimulationMeta | null>(null);
+  const [simSummaryAnalysis, setSimSummaryAnalysis] =
+    useState<AISimulationAnalysis | null>(null);
 
   const quakeSourceRef = useRef<VectorSource | null>(null);
   const searchMarkerSourceRef = useRef<VectorSource | null>(null);
@@ -408,6 +412,15 @@ export default function Simulation() {
     const magnitude = Number(simMag);
     const radiusKm = Number(simRadiusKm);
 
+    setSimSummaryMeta({
+      place: simPlace || 'Custom Location',
+      magnitude,
+      radiusKm,
+      pending: true,
+      error: null
+    });
+    setSimSummaryAnalysis(null);
+
     const point = new Feature({
       geometry: new Point(coord),
       mag: magnitude,
@@ -513,6 +526,18 @@ export default function Simulation() {
       coverageFeature.set('analysisPending', true);
       coverageFeature.set('analysis', null);
       coverageFeature.set('analysisError', null);
+      setSimSummaryMeta(prev =>
+        prev
+          ? { ...prev, pending: true, error: null }
+          : {
+              place: simPlace || 'Custom Location',
+              magnitude,
+              radiusKm,
+              pending: true,
+              error: null
+            }
+      );
+      setSimSummaryAnalysis(null);
 
       try {
         const [lon, lat] = toLonLat(coord3857);
@@ -537,14 +562,32 @@ export default function Simulation() {
 
         if (payload?.analysis) {
           coverageFeature.set('analysis', payload.analysis);
+          setSimSummaryAnalysis(payload.analysis);
+          setSimSummaryMeta(prev =>
+            prev
+              ? { ...prev, pending: false, error: null }
+              : {
+                  place: simPlace || 'Custom Location',
+                  magnitude,
+                  radiusKm,
+                  pending: false,
+                  error: null
+                }
+          );
         } else {
           coverageFeature.set('analysisError', 'No AI analysis returned.');
           setAnalysisError('AI did not return analysis.');
+          setSimSummaryMeta(prev =>
+            prev ? { ...prev, pending: false, error: 'No AI analysis returned.' } : null
+          );
         }
       } catch (err) {
         console.error('Failed to fetch AI analysis', err);
         coverageFeature.set('analysisError', 'Failed to fetch AI analysis.');
         setAnalysisError('Failed to fetch AI analysis.');
+        setSimSummaryMeta(prev =>
+          prev ? { ...prev, pending: false, error: 'Failed to fetch AI analysis.' } : null
+        );
       } finally {
         coverageFeature.set('analysisPending', false);
         if (hoveredSimFeatureRef.current === coverageFeature) {
@@ -644,7 +687,7 @@ export default function Simulation() {
     <div className="flex flex-col h-screen overflow-hidden">
       <Header />
       <div className="flex-1 flex overflow-hidden">
-        <div className="relative hidden md:flex md:flex-col md:w-1/3 lg:w-1/4 xl:w-1/5 p-4 border-r border-white/10 bg-quake-dark-blue">
+        <div className="relative hidden md:flex md:flex-col md:w-80 lg:w-96 p-4 border-r border-white/10 bg-quake-dark-blue overflow-y-auto">
           <h2 className="text-lg font-bold mb-4">Earthquake Simulator</h2>
           <form
             onSubmit={e => {
@@ -791,122 +834,109 @@ export default function Simulation() {
               </p>
             )}
           </form>
-          <div className="mt-auto pt-4 border-t border-white/10">
+
+          <div className="mt-6">
+            <h3 className="text-base font-semibold text-white mb-2">Event Details</h3>
+            <div className="bg-white/5 p-4 rounded-lg shadow-md space-y-3">
+              {selected ? (
+                <>
+                  <div className="text-sm text-white/80">
+                    <strong>Location:</strong> {selected.place}
+                  </div>
+                  <div className="text-sm text-white/80">
+                    <strong>Magnitude:</strong> {selected.mag}
+                  </div>
+                  <div className="text-sm text-white/80">
+                    <strong>Time:</strong>{' '}
+                    {new Date(selected.time).toLocaleString()}
+                  </div>
+                  <div className="text-sm text-white/80">
+                    <strong>Details:</strong>{' '}
+                    <a
+                      href={selected.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-400 hover:underline"
+                    >
+                      USGS Event Page
+                    </a>
+                  </div>
+                </>
+              ) : (
+                <div className="text-sm text-white/70">
+                  No event selected. Click on an earthquake on the map to see details.
+                </div>
+              )}
+
+              <div className="pt-3 border-t border-white/10">
+                <h4 className="text-sm font-semibold text-white mb-2">Simulated Impact (AI)</h4>
+                {simSummaryMeta ? (
+                  <div className="space-y-2 text-sm text-white/80">
+                    {simSummaryMeta.place && (
+                      <p>
+                        <span className="text-white/60">Location:</span> {simSummaryMeta.place}
+                      </p>
+                    )}
+                    {simSummaryMeta.magnitude !== undefined && (
+                      <p>
+                        <span className="text-white/60">Magnitude:</span> {simSummaryMeta.magnitude}
+                      </p>
+                    )}
+                    {simSummaryMeta.radiusKm !== undefined && (
+                      <p>
+                        <span className="text-white/60">Radius:</span>{' '}
+                        {simSummaryMeta.radiusKm.toFixed(1)} km
+                      </p>
+                    )}
+                    {simSummaryMeta.pending ? (
+                      <p className="text-white/70">Generating AI impact analysis…</p>
+                    ) : simSummaryMeta.error ? (
+                      <p className="text-red-400">{simSummaryMeta.error}</p>
+                    ) : simSummaryAnalysis?.impact ? (
+                      <ul className="space-y-1">
+                        <li>
+                          Estimated casualties:{' '}
+                          {simSummaryAnalysis.impact.estimated_casualties ?? 'unknown'}
+                        </li>
+                        <li>
+                          Estimated injured:{' '}
+                          {simSummaryAnalysis.impact.estimated_injured ?? 'unknown'}
+                        </li>
+                        <li>
+                          Damaged infrastructure:{' '}
+                          {simSummaryAnalysis.impact.damaged_infrastructure ?? 'unknown'}
+                        </li>
+                        <li>
+                          Tsunami risk:{' '}
+                          {simSummaryAnalysis.impact.tsunami_risk ?? 'unknown'}
+                        </li>
+                        <li>
+                          Landslide risk:{' '}
+                          {simSummaryAnalysis.impact.landslide_risk ?? 'unknown'}
+                        </li>
+                      </ul>
+                    ) : (
+                      <p className="text-white/70">No AI analysis available.</p>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-sm text-white/70">
+                    Run a simulation to generate AI impact estimates.
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-6 pt-4 border-t border-white/10">
             <p className="text-xs text-white/70">
               Data from USGS Earthquake Hazards Program
             </p>
           </div>
         </div>
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <div className="flex-1 h-0">
-            <div
-              ref={mapContainerRef}
-              className="w-full h-full"
-            />
-          </div>
-          <div className="p-4 bg-quake-dark-blue border-t border-white/10">
-            <div className="max-w-2xl mx-auto space-y-4">
-              <div>
-                <h2 className="text-lg font-bold mb-2">Event Details</h2>
-                <div className="bg-white/5 p-4 rounded-lg shadow-md space-y-2">
-                  {selected ? (
-                    <>
-                      <div className="text-sm text-white/80">
-                        <strong>Location:</strong> {selected.place}
-                      </div>
-                      <div className="text-sm text-white/80">
-                        <strong>Magnitude:</strong> {selected.mag}
-                      </div>
-                      <div className="text-sm text-white/80">
-                        <strong>Time:</strong>{' '}
-                        {new Date(selected.time).toLocaleString()}
-                      </div>
-                      <div className="text-sm text-white/80">
-                        <strong>Details:</strong>{' '}
-                        <a
-                          href={selected.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-400 hover:underline"
-                        >
-                          USGS Event Page
-                        </a>
-                      </div>
-                    </>
-                  ) : (
-                    <div className="text-sm text-white/70">
-                      No event selected. Click on an earthquake on the map to see
-                      details.
-                    </div>
-                  )}
-                </div>
-              </div>
-              {hoveredSimMeta && (
-                <div className="bg-white/5 p-4 rounded-lg shadow-md space-y-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <h3 className="text-base font-semibold text-white">
-                      Simulated Impact (AI)
-                    </h3>
-                    {hoveredSimMeta.radiusKm !== undefined && (
-                      <span className="text-xs text-white/70">
-                        Radius: {hoveredSimMeta.radiusKm.toFixed(1)} km
-                      </span>
-                    )}
-                  </div>
-                  <div className="text-sm text-white/80 space-y-1">
-                    {hoveredSimMeta.place && (
-                      <p>
-                        <span className="text-white/60">Location:</span>{' '}
-                        {hoveredSimMeta.place}
-                      </p>
-                    )}
-                    {hoveredSimMeta.magnitude !== undefined && (
-                      <p>
-                        <span className="text-white/60">Magnitude:</span>{' '}
-                        {hoveredSimMeta.magnitude}
-                      </p>
-                    )}
-                  </div>
-                  {hoveredSimMeta.pending ? (
-                    <p className="text-sm text-white/70">
-                      Generating AI impact analysis…
-                    </p>
-                  ) : hoveredSimMeta.error ? (
-                    <p className="text-sm text-red-400">
-                      {hoveredSimMeta.error}
-                    </p>
-                  ) : hoveredSimAnalysis?.impact ? (
-                    <ul className="text-sm text-white/80 space-y-1">
-                      <li>
-                        Estimated casualties:{' '}
-                        {hoveredSimAnalysis.impact.estimated_casualties ?? 'unknown'}
-                      </li>
-                      <li>
-                        Estimated injured:{' '}
-                        {hoveredSimAnalysis.impact.estimated_injured ?? 'unknown'}
-                      </li>
-                      <li>
-                        Damaged infrastructure:{' '}
-                        {hoveredSimAnalysis.impact.damaged_infrastructure ?? 'unknown'}
-                      </li>
-                      <li>
-                        Tsunami risk:{' '}
-                        {hoveredSimAnalysis.impact.tsunami_risk ?? 'unknown'}
-                      </li>
-                      <li>
-                        Landslide risk:{' '}
-                        {hoveredSimAnalysis.impact.landslide_risk ?? 'unknown'}
-                      </li>
-                    </ul>
-                  ) : (
-                    <p className="text-sm text-white/70">
-                      Hover over a simulated coverage circle to view AI insights.
-                    </p>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
+
+        <div className="flex-1">
+          <div ref={mapContainerRef} className="w-full h-full" />
         </div>
       </div>
     </div>
