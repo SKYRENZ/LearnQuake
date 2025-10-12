@@ -66,6 +66,9 @@ interface HoveredSimulationMeta {
   error?: string | null;
 }
 
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5000';
+
 export default function Simulation() {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<Map | null>(null);
@@ -541,7 +544,7 @@ export default function Simulation() {
 
       try {
         const [lon, lat] = toLonLat(coord3857);
-        const res = await fetch('http://localhost:5000/map', {
+        const res = await fetch(`${API_BASE_URL}/map`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -724,7 +727,10 @@ export default function Simulation() {
                 type="number"
                 id="magnitude"
                 value={simMag}
-                onChange={e => setSimMag(e.target.value)}
+                onChange={e => {
+                  const value = e.target.value;
+                  setSimMag(value === '' ? '' : Number(value));
+                }}
                 className="mt-1 block w-full p-2 text-sm rounded-md bg-white/5 border border-white/10 focus:ring-1 focus:ring-blue-500 focus:outline-none"
                 placeholder="Enter magnitude (e.g., 5.0)"
                 min="0"
@@ -742,7 +748,10 @@ export default function Simulation() {
                 type="number"
                 id="radius"
                 value={simRadiusKm}
-                onChange={e => setSimRadiusKm(e.target.value)}
+                onChange={e => {
+                  const value = e.target.value;
+                  setSimRadiusKm(value === '' ? '' : Number(value));
+                }}
                 className="mt-1 block w-full p-2 text-sm rounded-md bg-white/5 border border-white/10 focus:ring-1 focus:ring-blue-500 focus:outline-none"
                 placeholder="Enter radius in kilometers"
                 min="0"

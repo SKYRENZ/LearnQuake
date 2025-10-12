@@ -32,6 +32,9 @@ interface TimeSeriesData {
   frequency: number;
 }
 
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5000';
+
 export default function Seismology() {
   const [searchQuery, setSearchQuery] = useState('');
   const [locationSearch, setLocationSearch] = useState('');
@@ -264,7 +267,7 @@ export default function Seismology() {
     
     try {
       console.log(`🔍 Searching for earthquakes in: "${country}"`);
-      const response = await fetch(`http://localhost:3001/api/earthquakes/search-by-country?country=${encodeURIComponent(country)}&timeframe=month&limit=50`);
+      const response = await fetch(`http://localhost:5000/api/earthquakes/search-by-country?country=${encodeURIComponent(country)}&timeframe=month&limit=50`);
       const result = await response.json();
 
       if (result.success) {
@@ -293,7 +296,7 @@ export default function Seismology() {
     const loadDefaultEarthquakes = async () => {
       setLoading(true);
       try {
-        const response = await fetch('http://localhost:3001/api/earthquakes?timeframe=day&limit=20');
+        const response = await fetch(`${API_BASE_URL}/api/earthquakes?timeframe=day&limit=20`);
         const result = await response.json();
 
         if (result.success) {
