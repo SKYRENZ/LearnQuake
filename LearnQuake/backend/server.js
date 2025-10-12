@@ -8,7 +8,7 @@ import { mapSystemPrompt } from "./mapRules.js";
 import USGSEarthquakeService from './seismology.js';
 
 const app = express();
-const port = process.env.PORT || 3001;
+const port = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors());
