@@ -32,6 +32,9 @@ interface TimeSeriesData {
   frequency: number;
 }
 
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5000';
+
 export default function Seismology() {
   const [searchQuery, setSearchQuery] = useState('');
   const [locationSearch, setLocationSearch] = useState('');
@@ -264,7 +267,7 @@ export default function Seismology() {
     
     try {
       console.log(`🔍 Searching for earthquakes in: "${country}"`);
-      const response = await fetch(`http://localhost:3001/api/earthquakes/search-by-country?country=${encodeURIComponent(country)}&timeframe=month&limit=50`);
+      const response = await fetch(`http://localhost:5000/api/earthquakes/search-by-country?country=${encodeURIComponent(country)}&timeframe=month&limit=50`);
       const result = await response.json();
 
       if (result.success) {
@@ -293,7 +296,7 @@ export default function Seismology() {
     const loadDefaultEarthquakes = async () => {
       setLoading(true);
       try {
-        const response = await fetch('http://localhost:3001/api/earthquakes?timeframe=day&limit=20');
+        const response = await fetch(`${API_BASE_URL}/api/earthquakes?timeframe=day&limit=20`);
         const result = await response.json();
 
         if (result.success) {
@@ -386,7 +389,7 @@ export default function Seismology() {
     <div className="min-h-screen bg-white">
       <Header />
       
-      <main className="max-w-6xl mx-auto px-2 sm:px-4 lg:px-6 py-4">
+      <main className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6 py-4">
         <div className="mb-6 flex items-center justify-between">
           <p className="font-instrument font-bold text-sm md:text-base text-quake-dark-blue">
             <span className="text-quake-dark-blue">{currentDate.dayName}, </span>
@@ -399,9 +402,12 @@ export default function Seismology() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-12 gap-4">
-          <div className="xl:col-span-7 space-y-4">
-            <div className="bg-white rounded-lg shadow border border-gray-100 p-4">
+        {/* Updated Grid Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          
+          {/* Left Side - Earthquake Data Selector */}
+          <div className="space-y-4">
+            <div className="bg-white rounded-lg shadow border border-gray-100 p-4 flex flex-col" style={{ height: 'calc(100vh - 200px)' }}>
               <h2 className="font-roboto font-semibold text-xs uppercase tracking-wider text-black mb-2">
                 Earthquake Data Selector
               </h2>
@@ -503,60 +509,107 @@ export default function Seismology() {
                 </div>
               )}
 
-              {/* Earthquake Data Display */}
-              <div className="space-y-2 max-h-60 overflow-y-auto">
-                {loading ? (
-                  <div className="text-center py-4">
-                    <div className="text-xs text-gray-500">Loading earthquakes...</div>
-                  </div>
-                ) : filteredEarthquakes.length > 0 ? (
-                  filteredEarthquakes.map((item, index) => (
-                    <div
-                      key={item.id || index}
-                      onClick={() => setSelectedEarthquakeId(item.id === selectedEarthquakeId ? null : item.id)}
-                      className={`flex items-center justify-between py-2 px-2 border-b border-gray-200 last:border-b-0 cursor-pointer rounded transition-colors duration-200 ${
-                        selectedEarthquakeId === item.id 
-                          ? 'bg-blue-50 border-blue-200' 
-                          : 'hover:bg-gray-50'
-                      }`}
-                    >
-                      <div className="flex items-center space-x-4">
-                        <div className="flex flex-col">
-                          <span className="font-roboto font-bold text-xs text-red-600">
-                            M {item.magnitude.toFixed(1)}
-                          </span>
-                          <span className="font-roboto font-medium text-[10px] text-blue-600">
-                            {item.depth.toFixed(0)}km deep
-                          </span>
+              {/* Earthquake Data Display - Now flexible to fill remaining space */}
+              <div className="flex-1 flex flex-col min-h-0">
+                <div className="space-y-2 flex-1 overflow-y-auto">
+                  {loading ? (
+                    <div className="text-center py-4">
+                      <div className="text-xs text-gray-500">Loading earthquakes...</div>
+                    </div>
+                  ) : filteredEarthquakes.length > 0 ? (
+                    filteredEarthquakes.map((item, index) => (
+                      <div
+                        key={item.id || index}
+                        onClick={() => setSelectedEarthquakeId(item.id === selectedEarthquakeId ? null : item.id)}
+                        className={`flex items-center justify-between py-2 px-2 border-b border-gray-200 last:border-b-0 cursor-pointer rounded transition-colors duration-200 ${
+                          selectedEarthquakeId === item.id 
+                            ? 'bg-blue-50 border-blue-200' 
+                            : 'hover:bg-gray-50'
+                        }`}
+                      >
+                        <div className="flex items-center space-x-4">
+                          <div className="flex flex-col">
+                            <span className="font-roboto font-bold text-xs text-red-600">
+                              M {item.magnitude.toFixed(1)}
+                            </span>
+                            <span className="font-roboto font-medium text-[10px] text-blue-600">
+                              {item.depth.toFixed(0)}km deep
+                            </span>
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="font-roboto font-medium text-xs text-black">
+                              {item.place}
+                            </span>
+                            <span className="font-roboto font-medium text-[10px] text-gray-400">
+                              {new Date(item.time).toLocaleDateString()} {new Date(item.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </div>
                         </div>
-                        <div className="flex flex-col">
-                          <span className="font-roboto font-medium text-xs text-black">
-                            {item.place}
-                          </span>
-                          <span className="font-roboto font-medium text-[10px] text-gray-400">
-                            {new Date(item.time).toLocaleDateString()} {new Date(item.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </span>
-                        </div>
+                        <div className={`w-6 h-px transition-colors duration-200 ${
+                          selectedEarthquakeId === item.id ? 'bg-blue-500' : 'bg-black'
+                        }`}></div>
                       </div>
-                      <div className={`w-6 h-px transition-colors duration-200 ${
-                        selectedEarthquakeId === item.id ? 'bg-blue-500' : 'bg-black'
-                      }`}></div>
+                    ))
+                  ) : (
+                    <div className="text-center py-4">
+                      <div className="text-xs text-gray-500">
+                        {earthquakeData.length === 0 
+                          ? "No earthquake data available. Try searching for a country."
+                          : "No earthquakes match your current filters."
+                        }
+                      </div>
                     </div>
-                  ))
-                ) : (
-                  <div className="text-center py-4">
-                    <div className="text-xs text-gray-500">
-                      {earthquakeData.length === 0 
-                        ? "No earthquake data available. Try searching for a country."
-                        : "No earthquakes match your current filters."
-                      }
-                    </div>
-                  </div>
-                )}
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Side - Analysis Tools */}
+          <div className="space-y-2">
+            
+            {/* Frequency Range */}
+            <div className="bg-white rounded-lg shadow border border-gray-100 p-4">
+              <h2 className="font-roboto font-medium text-xs uppercase tracking-wider text-black mb-3">
+                Frequency Range
+              </h2>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={frequencyMin}
+                    onChange={(e) => handleFrequencyChange(e.target.value, setFrequencyMin, setErrorMin)}
+                    className={`w-full px-2 py-1 border font-roboto font-medium text-xs text-black text-center focus:outline-none ${
+                      errorMin ? 'border-red-500' : 'border-black'
+                    }`}
+                  />
+                  <label className="absolute -top-4 left-0 text-[10px] text-gray-500">Min (Hz)</label>
+                  {errorMin && (
+                    <span className="absolute -bottom-4 left-0 text-[10px] text-red-500">
+                      Only numbers are accepted
+                    </span>
+                  )}
+                </div>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={frequencyMax}
+                    onChange={(e) => handleFrequencyChange(e.target.value, setFrequencyMax, setErrorMax)}
+                    className={`w-full px-2 py-1 border font-roboto font-medium text-xs text-black text-center focus:outline-none ${
+                      errorMax ? 'border-red-500' : 'border-black'
+                    }`}
+                  />
+                  <label className="absolute -top-4 left-0 text-[10px] text-gray-500">Max (Hz)</label>
+                  {errorMax && (
+                    <span className="absolute -bottom-4 left-0 text-[10px] text-red-500">
+                      Only numbers are accepted
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
 
-            {/* Enhanced Time Series Filtering */}
+            {/* Time Series Filtering */}
             <div className="bg-white rounded-lg shadow border border-gray-100 p-4">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4">
                 <h2 className="font-roboto font-medium text-sm uppercase tracking-wider text-black mb-2 sm:mb-0">
@@ -668,50 +721,8 @@ export default function Seismology() {
                 )}
               </div>
             </div>
-          </div>
 
-          <div className="xl:col-span-5 space-y-4">
-            <div className="bg-white rounded-lg shadow border border-gray-100 p-4">
-              <h2 className="font-roboto font-medium text-xs uppercase tracking-wider text-black mb-3">
-                Frequency Range
-              </h2>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={frequencyMin}
-                    onChange={(e) => handleFrequencyChange(e.target.value, setFrequencyMin, setErrorMin)}
-                    className={`w-full px-2 py-1 border font-roboto font-medium text-xs text-black text-center focus:outline-none ${
-                      errorMin ? 'border-red-500' : 'border-black'
-                    }`}
-                  />
-                  <label className="absolute -top-4 left-0 text-[10px] text-gray-500">Min (Hz)</label>
-                  {errorMin && (
-                    <span className="absolute -bottom-4 left-0 text-[10px] text-red-500">
-                      Only numbers are accepted
-                    </span>
-                  )}
-                </div>
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={frequencyMax}
-                    onChange={(e) => handleFrequencyChange(e.target.value, setFrequencyMax, setErrorMax)}
-                    className={`w-full px-2 py-1 border font-roboto font-medium text-xs text-black text-center focus:outline-none ${
-                      errorMax ? 'border-red-500' : 'border-black'
-                    }`}
-                  />
-                  <label className="absolute -top-4 left-0 text-[10px] text-gray-500">Max (Hz)</label>
-                  {errorMax && (
-                    <span className="absolute -bottom-4 left-0 text-[10px] text-red-500">
-                      Only numbers are accepted
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Enhanced Spectral Analysis */}
+            {/* Spectral Analysis */}
             <div className="bg-white rounded-lg shadow border border-gray-100 p-4 h-[380px]">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4">
                 <h2 className="font-roboto font-medium text-xs uppercase tracking-wider text-black mb-2 sm:mb-0">
