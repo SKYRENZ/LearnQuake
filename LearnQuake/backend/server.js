@@ -4,8 +4,8 @@ dotenv.config();
 
 import express from "express";
 import cors from "cors";
-import { mapSystemPrompt } from "./mapRules.js";
-import USGSEarthquakeService from './seismology.js';
+import { generateMapAnalysis } from "./services/mapAnalysisService.js";
+import USGSEarthquakeService from "./services/usgsEarthquakeService.js";
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -29,57 +29,17 @@ app.post("/map", async (req, res) => {
       coordinates
     });
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "gpt-3.5-turbo",
-        messages: [
-          {
-            role: "system",
-            content: mapSystemPrompt,
-          },
-          {
-            role: "user",
-            content: JSON.stringify({
-              place: place,
-              coordinates: coordinates,
-              magnitude: magnitude,
-              areaCoverage: areaCoverage,
-            }),
-          },
-        ],
-      }),
+    const analysis = await generateMapAnalysis({
+      place,
+      magnitude,
+      areaCoverage,
+      coordinates,
     });
-
-    //logs to see kung talagang nasesend sa AI yung request and kung AI talaga yung nageenerate ng data
-    console.log("📥 Response status from OpenAI:", response.status);
-
-    const data = await response.json();
-    console.log("📥 Raw response from OpenAI:", JSON.stringify(data, null, 2));
-
-    let analysisText = data.choices?.[0]?.message?.content;
-
-    if (!analysisText) {
-      return res.status(500).json({ error: "No content received from OpenAI." });
-    }
-
-    // check lang if valid json
-    let analysis;
-    try {
-      analysis = JSON.parse(analysisText);
-    } catch (err) {
-      console.error("⚠️ AI did not return JSON:", analysisText);
-      return res.status(500).json({ error: "Invalid AI response" });
-    }
 
     res.json({ analysis });
   } catch (error) {
     console.error("❌ Error in /map:", error);
-    res.status(500).json({ error: "Something went wrong with Map Analysis." });
+    res.status(500).json({ error: error.message || "Something went wrong with Map Analysis." });
   }
 });
 

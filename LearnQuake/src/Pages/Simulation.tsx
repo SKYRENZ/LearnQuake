@@ -1,5 +1,6 @@
 import Header from '../components/Header';
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { getEndpoint } from '../api/client';
 import 'ol/ol.css';
 import Map from 'ol/Map';
 import View from 'ol/View';
@@ -66,8 +67,7 @@ interface HoveredSimulationMeta {
   error?: string | null;
 }
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5000';
+const MAP_ENDPOINT = getEndpoint('map');
 
 export default function Simulation() {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
@@ -544,7 +544,7 @@ export default function Simulation() {
 
       try {
         const [lon, lat] = toLonLat(coord3857);
-        const res = await fetch(`${API_BASE_URL}/map`, {
+  const res = await fetch(MAP_ENDPOINT, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

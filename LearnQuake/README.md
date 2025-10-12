@@ -1,69 +1,72 @@
-# React + TypeScript + Vite
+# LearnQuake
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+LearnQuake is a Vite + React application that visualises earthquake data and provides AI-generated hazard simulations. The frontend is bundled with Vite, while backend capabilities (map analysis via OpenAI and USGS lookups) are exposed through Netlify Functions so the entire experience can be deployed on Netlify without managing a standalone Node server.
 
-Currently, two official plugins are available:
+## Prerequisites
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- Node.js 18+
+- npm 9+
+- A Netlify account (for deployment)
+- An OpenAI API key with access to the Chat Completions API
+- (Optional) [Netlify CLI](https://docs.netlify.com/cli/get-started/) for local testing
 
-## Expanding the ESLint configuration
+## Installation
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Environment variables
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+Create a `.env` file (or use Netlify UI) and set the following:
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+OPENAI_API_KEY=<your-openai-api-key>
+# Optional: override the default API base. When omitted, production builds use /.netlify/functions
+VITE_API_BASE_URL=http://localhost:5000
 ```
+
+On Netlify, add the same variables in **Site settings → Environment variables** so that functions can access `OPENAI_API_KEY` during deploys.
+
+## Local development
+
+For a seamless function + frontend dev loop, run Netlify Dev:
+
+```bash
+npx netlify dev
+```
+
+This proxies requests to `/.netlify/functions/*` to the local function bundle and serves the Vite dev server with hot reloading.
+
+If you prefer to run the legacy Express server, start it from `backend/` and set `VITE_API_BASE_URL=http://localhost:5000` so the frontend targets it. The Netlify Functions share the same service layer, so behaviour remains consistent.
+
+## Production build
+
+```bash
+npm run build
+```
+
+The output is written to `dist/` and Netlify is configured (see `netlify.toml`) to publish that directory while bundling functions from `netlify/functions`.
+
+## Deploying to Netlify
+
+1. Push your changes to GitHub.
+2. Create a new Netlify site and connect the repository.
+3. In the build settings, keep `npm run build` as the command and `dist` as the publish directory. The `netlify/functions` directory is already declared in `netlify.toml`.
+4. Define the required environment variables (`OPENAI_API_KEY`, optional `VITE_API_BASE_URL`).
+5. Trigger a deploy – Netlify will bundle the frontend and the serverless functions automatically.
+
+## Project structure
+
+- `src/` – React application
+- `netlify/functions/` – Serverless handlers for map analysis and USGS queries
+- `backend/services/` – Shared Node modules used by both the functions and (optionally) the legacy Express server
+- `backend/server.js` – Legacy Express server retained for local or alternative hosting scenarios
+
+## Testing & linting
+
+```bash
+npm run lint
+```
+
+Add your preferred testing framework (e.g. Vitest, Testing Library) as needed.
