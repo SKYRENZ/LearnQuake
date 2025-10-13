@@ -1,6 +1,36 @@
 import Header from '../components/Header';
 
 export default function About() {
+  const handleShare = async () => {
+    const shareText = 'Learn earthquake safety with LEARNQUAKE.';
+    const shareUrl = window.location.origin;
+    const shareData = {
+      title: 'LEARNQUAKE',
+      text: shareText,
+      url: shareUrl,
+    };
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+        return;
+      }
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(`${shareData.title} - ${shareText} ${shareUrl}`);
+        alert('Link copied to clipboard!');
+        return;
+      }
+      const textarea = document.createElement('textarea');
+      textarea.value = `${shareData.title} - ${shareText} ${shareUrl}`;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+      alert('Link copied to clipboard!');
+    } catch (e) {
+      const mailto = `mailto:?subject=${encodeURIComponent('LEARNQUAKE')}&body=${encodeURIComponent(`${shareText} ${shareUrl}`)}`;
+      window.location.href = mailto;
+    }
+  };
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20">
       <Header />
@@ -9,7 +39,7 @@ export default function About() {
         {/* Hero Section */}
         <div className="text-center mb-12 md:mb-16">
           <h1 className="font-instrument font-bold text-4xl md:text-6xl lg:text-7xl text-gray-900 mb-6">
-            About <span className="text-quake-purple">LearnQuake</span>
+            About <span className="text-quake-purple">LEARNQUAKE</span>
           </h1>
           <p className="font-instrument text-lg md:text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
             Empowering communities through comprehensive earthquake education, 
@@ -30,7 +60,7 @@ export default function About() {
               <p className="font-instrument text-lg md:text-xl text-gray-700 leading-relaxed text-center mb-8">
                 After witnessing the devastating impact of earthquakes worldwide, our development team 
                 recognized the critical need for accessible, comprehensive earthquake education. 
-                LearnQuake was born from a simple yet powerful belief: <strong className="text-quake-purple">knowledge saves lives</strong>.
+                LEARNQUAKE was born from a simple yet powerful belief: <strong className="text-quake-purple">knowledge saves lives</strong>.
               </p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
                 <div className="text-center">
@@ -70,7 +100,7 @@ export default function About() {
                   We realized that while we couldn't prevent earthquakes, we could help prevent unnecessary casualties.
                 </p>
                 <p className="font-instrument text-lg text-gray-700 leading-relaxed">
-                  LearnQuake represents our commitment to transforming complex seismological data and 
+                  LEARNQUAKE represents our commitment to transforming complex seismological data and 
                   safety protocols into engaging, accessible content that anyone can understand and apply. 
                   Every feature, every animation, and every piece of content is designed with one goal in mind: 
                   <strong className="text-quake-dark-blue"> making earthquake safety knowledge accessible to everyone</strong>.
@@ -100,7 +130,7 @@ export default function About() {
         <section className="mb-16 md:mb-20">
           <div className="text-center mb-12">
             <h2 className="font-instrument font-bold text-3xl md:text-4xl text-gray-900 mb-4">
-              What Makes <span className="text-quake-dark-blue">LearnQuake</span> Special
+              What Makes <span className="text-quake-dark-blue">LEARNQUAKE</span> Special
             </h2>
             <div className="w-24 h-1 bg-gradient-to-r from-quake-dark-blue to-quake-purple mx-auto rounded-full"></div>
           </div>
@@ -158,7 +188,7 @@ export default function About() {
                 Our <span className="text-yellow-300">Impact</span>
               </h2>
               <p className="font-instrument text-lg md:text-xl opacity-90 max-w-3xl mx-auto">
-                Every person who learns earthquake safety through LearnQuake represents a potential life saved 
+                Every person who learns earthquake safety through LEARNQUAKE represents a potential life saved 
                 and a family protected. We're building a safer world, one lesson at a time.
               </p>
             </div>
@@ -194,11 +224,11 @@ export default function About() {
             </h2>
             <p className="font-instrument text-lg md:text-xl text-gray-700 mb-8 max-w-3xl mx-auto">
               Help us spread earthquake safety knowledge to communities worldwide. 
-              Share LearnQuake with your family, friends, and community organizations.
+              Share LEARNQUAKE with your family, friends, and community organizations.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button className="bg-quake-purple text-white font-instrument font-semibold px-8 py-3 rounded-xl hover:bg-quake-dark-blue transition-colors duration-300">
-                Share LearnQuake
+              <button onClick={handleShare} className="bg-quake-purple text-white font-instrument font-semibold px-8 py-3 rounded-xl hover:bg-quake-dark-blue transition-colors duration-300">
+                Share LEARNQUAKE
               </button>
               <button className="border-2 border-quake-purple text-quake-purple font-instrument font-semibold px-8 py-3 rounded-xl hover:bg-quake-purple hover:text-white transition-colors duration-300">
                 Contact Us

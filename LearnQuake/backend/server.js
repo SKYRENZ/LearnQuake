@@ -1,24 +1,23 @@
 import './config/loadEnv.js';
 import express from 'express';
 import cors from 'cors';
-import { generateMapAnalysis } from './services/mapAnalysisService.js';
 import earthquakeRoutes from './routes/earthquakeRoutes.js';
 import mapRoutes from './routes/mapRoutes.js';
 import footageRoutes from './routes/footageRoutes.js';
+import newsRoutes from './routes/newsRoutes.js';
+import { generateMapAnalysis } from './services/mapAnalysisService.js';
 
 const app = express();
 const port = process.env.PORT || 5000;
 
-// Middleware
 app.use(cors());
 app.use(express.json());
 
-// Routes
 app.use('/api/earthquakes', earthquakeRoutes);
 app.use('/map', mapRoutes);
 app.use('/api/footage', footageRoutes);
+app.use('/api/news', newsRoutes);
 
-// Health check
 app.get('/', (req, res) => {
   res.json({
     message: 'LearnQuake API is running',
@@ -26,20 +25,18 @@ app.get('/', (req, res) => {
       earthquakes: '/api/earthquakes',
       map: '/map',
       footage: '/api/footage',
+      news: '/api/news',
     },
   });
 });
 
-// Local server listener
 app.listen(port, () => {
   console.log(`Map Analysis backend running on http://localhost:${port}`);
-  console.log(
-    `Search earthquakes at: http://localhost:${port}/api/earthquakes/search?location=California`,
-  );
-  console.log(`Get footage at: http://localhost:${port}/api/footage`);
+  console.log(`Search earthquakes at: http://localhost:${port}/api/earthquakes/search?location=California`);
+  console.log(`Fetch earthquake videos at: http://localhost:${port}/api/footage`);
+  console.log(`Fetch earthquake news at: http://localhost:${port}/api/news/earthquake`);
 });
 
-// Netlify handler (kept for parity with serverlessApp)
 function jsonResponse(statusCode, payload) {
   return {
     statusCode,
@@ -69,12 +66,7 @@ export const handler = async (event) => {
   }
 
   try {
-    const analysis = await generateMapAnalysis({
-      place,
-      magnitude,
-      areaCoverage,
-      coordinates,
-    });
+    const analysis = await generateMapAnalysis({ place, magnitude, areaCoverage, coordinates });
     return jsonResponse(200, { success: true, analysis });
   } catch (error) {
     console.error('Map function error:', error);
