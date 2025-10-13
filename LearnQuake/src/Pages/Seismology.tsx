@@ -297,27 +297,35 @@ export default function Seismology() {
 
   // Load default earthquakes on component mount
   useEffect(() => {
-    const loadDefaultEarthquakes = async () => {
-      setLoading(true);
-      try {
-        const response = await fetch(
-          getEndpoint('earthquakes', {
-            timeframe: 'day',
-            limit: '20'
-          })
-        );
-        const result = await response.json();
+    async function loadDefaultEarthquakes() {
+      const endpoint =
+        (import.meta.env.VITE_EARTHQUAKES_ENDPOINT as string) ||
+        '/.netlify/functions/earthquakes';
 
-        if (result.success) {
-          setEarthquakeData(result.data);
+      try {
+        const res = await fetch(endpoint);
+        const text = await res.text();
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}: ${text}`);
+        }
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch (e) {
+          throw new Error('Expected JSON from earthquakes endpoint');
+        }
+        if (data.success) {
+          setEarthquakeData(data.data);
+        } else {
+          throw new Error(data.error || 'Unknown error');
         }
       } catch (err) {
         console.error('Error loading default earthquakes:', err);
-        setEarthquakeData([]);
+        setError('Failed to load default earthquakes. Please try again later.');
       } finally {
         setLoading(false);
       }
-    };
+    }
 
     loadDefaultEarthquakes();
   }, []);

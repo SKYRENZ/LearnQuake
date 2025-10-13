@@ -1,12 +1,11 @@
-//para sa env
-import dotenv from "dotenv";
-dotenv.config();
-
-import express from "express";
-import cors from "cors";
+import express from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
 import earthquakeRoutes from './routes/earthquakeRoutes.js';
 import mapRoutes from './routes/mapRoutes.js';
-import { generateMapAnalysis } from "../../backend/services/mapAnalysisService.js";
+import { generateMapAnalysis } from './services/mapAnalysisService.js';
+
+dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 5000;
