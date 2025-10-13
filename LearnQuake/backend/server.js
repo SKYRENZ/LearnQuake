@@ -25,3 +25,9 @@ app.listen(port, () => {
     `Search earthquakes at: http://localhost:${port}/api/earthquakes/search?location=California`,
   );
 });
+
+import app from './serverlessApp.js';
+
+app.listen(port, () => {
+  console.log(`Map Analysis backend running on http://localhost:${port}`);
+});
