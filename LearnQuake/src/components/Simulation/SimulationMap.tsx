@@ -17,10 +17,12 @@ import Map from 'ol/Map';
 import View from 'ol/View';
 import TileLayer from 'ol/layer/Tile';
 import VectorLayer from 'ol/layer/Vector';
+import Heatmap from 'ol/layer/Heatmap';
+import { Text } from 'ol/style';
 import OSM from 'ol/source/OSM';
 import VectorSource from 'ol/source/Vector';
 import { Circle as CircleStyle, Fill, Stroke, Style } from 'ol/style';
-import GeoJSON from 'ol/format/GeoJSON';
+import { GeoJSON } from 'ol/format';
 import Feature from 'ol/Feature';
 import Point from 'ol/geom/Point';
 import Polygon, { circular as polygonCircular } from 'ol/geom/Polygon';
@@ -41,6 +43,7 @@ import {
   removeMapEventListener,
 } from '../../utils/openlayers';
 import MapBrowserEventType from 'ol/MapBrowserEventType';
+import Icon from 'ol/style/Icon';
 
 interface SimulationMapProps {
   simPlace: string;
@@ -109,15 +112,36 @@ const SimulationMap = forwardRef<SimulationMapHandle, SimulationMapProps>(
     const popupRef = useRef<Overlay | null>(null);
     const faultLineSourceRef = useRef<VectorSource | null>(null);
     const faultLineLayerRef = useRef<VectorLayer<VectorSource> | null>(null);
+    const heatmapLayerRef = useRef<Heatmap | null>(null);
+    const heatmapSourceRef = useRef<VectorSource | null>(null);
+    const volcanoSourceRef = useRef<VectorSource | null>(null);
+    const volcanoLayerRef = useRef<VectorLayer<VectorSource> | null>(null);
+    const tsunamiSourceRef = useRef<VectorSource | null>(null);
+    const tsunamiLayerRef = useRef<VectorLayer<VectorSource> | null>(null);
+    const seismicStationSourceRef = useRef<VectorSource | null>(null);
+    const seismicStationLayerRef = useRef<VectorLayer<VectorSource> | null>(null);
 
     const [overlayReady, setOverlayReady] = useState(false);
     const [query, setQuery] = useState('');
     const [results, setResults] = useState<NominatimResult[]>([]);
     const [isSearching, setIsSearching] = useState(false);
+    const [layersDrawerOpen, setLayersDrawerOpen] = useState(true); // Add this
     const [faultLinesVisible, setFaultLinesVisible] = useState(false);
     const [faultLinesLoading, setFaultLinesLoading] = useState(false);
     const [faultLinesError, setFaultLinesError] = useState<string | null>(null);
     const [faultLinesLoaded, setFaultLinesLoaded] = useState(false);
+    const [heatmapVisible, setHeatmapVisible] = useState(false);
+    const [heatmapLoading, setHeatmapLoading] = useState(false);
+    const [heatmapLoaded, setHeatmapLoaded] = useState(false);
+    const [volcanoesVisible, setVolcanoesVisible] = useState(false);
+    const [volcanoesLoading, setVolcanoesLoading] = useState(false);
+    const [volcanoesLoaded, setVolcanoesLoaded] = useState(false);
+    const [tsunamiVisible, setTsunamiVisible] = useState(false);
+    const [tsunamiLoading, setTsunamiLoading] = useState(false);
+    const [tsunamiLoaded, setTsunamiLoaded] = useState(false);
+    const [seismicStationsVisible, setSeismicStationsVisible] = useState(false);
+    const [seismicStationsLoading, setSeismicStationsLoading] = useState(false);
+    const [seismicStationsLoaded, setSeismicStationsLoaded] = useState(false);
 
     const createGeodesicPolygon = useCallback(
       (center3857: [number, number], radiusMeters: number) => {
@@ -453,6 +477,110 @@ const SimulationMap = forwardRef<SimulationMapHandle, SimulationMapProps>(
       map.addLayer(faultLineLayer);
       faultLineLayerRef.current = faultLineLayer;
 
+      // Add Heatmap Layer
+      const heatmapSource = new VectorSource();
+      heatmapSourceRef.current = heatmapSource;
+      const heatmapLayer = new Heatmap({
+        source: heatmapSource,
+        visible: false,
+        blur: 15,
+        radius: 8,
+        weight: (feature) => {
+          const mag = (feature.get('mag') as number) || 0;
+          return Math.pow(2, mag) / 128; // Weight by magnitude
+        },
+        gradient: ['#00f', '#0ff', '#0f0', '#ff0', '#f00'],
+        opacity: 0.6,
+      });
+      map.addLayer(heatmapLayer);
+      heatmapLayerRef.current = heatmapLayer;
+
+      // Add Tsunami Zones Layer
+      const tsunamiSource = new VectorSource();
+      tsunamiSourceRef.current = tsunamiSource;
+      const tsunamiLayer = new VectorLayer({
+        source: tsunamiSource,
+        visible: false,
+        style: (feature) => {
+          const risk = feature.get('risk') as string;
+          let color = 'rgba(59, 130, 246, 0.2)'; // Medium - blue
+          if (risk === 'High') color = 'rgba(239, 68, 68, 0.25)'; // High - red
+          if (risk === 'Low') color = 'rgba(34, 197, 94, 0.15)'; // Low - green
+          
+          return new Style({
+            fill: new Fill({ color }),
+            stroke: new Stroke({
+              color: risk === 'High' ? '#ef4444' : '#3b82f6',
+              width: 2,
+              lineDash: [5, 5],
+            }),
+          });
+        },
+      });
+      map.addLayer(tsunamiLayer);
+      tsunamiLayerRef.current = tsunamiLayer;
+
+      // Add Volcanoes Layer
+      const volcanoSource = new VectorSource();
+      volcanoSourceRef.current = volcanoSource;
+      const volcanoLayer = new VectorLayer({
+        source: volcanoSource,
+        visible: false,
+        style: (feature) => {
+          const alert = (feature.get('alert') as string) || 'Normal';
+          let iconColor = '#f97316'; // orange
+          if (alert.includes('Level 2')) iconColor = '#ef4444'; // red
+          if (alert.includes('Level 1')) iconColor = '#fbbf24'; // yellow
+          
+          return new Style({
+            image: new CircleStyle({
+              radius: 8,
+              fill: new Fill({ color: iconColor }),
+              stroke: new Stroke({ color: '#ffffff', width: 2 }),
+            }),
+            text: new Text({
+              text: '🌋',
+              font: '20px sans-serif',
+              offsetY: -2,
+            }),
+          });
+        },
+      });
+      map.addLayer(volcanoLayer);
+      volcanoLayerRef.current = volcanoLayer;
+
+      // Add Seismic Stations Layer
+      const seismicStationSource = new VectorSource();
+      seismicStationSourceRef.current = seismicStationSource;
+      const seismicStationLayer = new VectorLayer({
+        source: seismicStationSource,
+        visible: false,
+        style: (feature) => {
+          const stationType = (feature.get('type') as string) || 'Unknown';
+          const status = (feature.get('status') as string) || 'Unknown';
+          
+          // Color based on station type
+          let iconColor = '#3b82f6'; // blue for broadband
+          if (stationType === 'Strong Motion') iconColor = '#8b5cf6'; // purple
+          if (status !== 'Active') iconColor = '#9ca3af'; // gray for inactive
+          
+          return new Style({
+            image: new CircleStyle({
+              radius: 6,
+              fill: new Fill({ color: iconColor }),
+              stroke: new Stroke({ color: '#ffffff', width: 2 }),
+            }),
+            text: new Text({
+              text: '📡',
+              font: '16px sans-serif',
+              offsetY: -1,
+            }),
+          });
+        },
+      });
+      map.addLayer(seismicStationLayer);
+      seismicStationLayerRef.current = seismicStationLayer;
+
       const popupElement = document.createElement('div');
       popupElement.className =
         'pointer-events-none rounded-lg bg-quake-dark-blue text-white text-xs px-3 py-2 shadow-lg border border-white/10 hidden max-w-[240px]';
@@ -685,6 +813,122 @@ const SimulationMap = forwardRef<SimulationMapHandle, SimulationMapProps>(
       }
     }, [faultLinesVisible, faultLinesLoaded]);
 
+    // Load Historical Earthquakes for Heatmap
+    useEffect(() => {
+      const layer = heatmapLayerRef.current;
+      const source = heatmapSourceRef.current;
+      if (!layer || !source) return;
+
+      layer.setVisible(heatmapVisible);
+
+      if (heatmapVisible && !heatmapLoaded) {
+        setHeatmapLoading(true);
+        
+        fetch('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_month.geojson')
+          .then(res => res.json())
+          .then(data => {
+            const format = new GeoJSON();
+            const features = format.readFeatures(data, {
+              featureProjection: 'EPSG:3857',
+            });
+            source.addFeatures(features);
+            setHeatmapLoaded(true);
+            setHeatmapLoading(false);
+          })
+          .catch(err => {
+            console.error('Failed to load earthquake heatmap data', err);
+            setHeatmapLoading(false);
+          });
+      }
+    }, [heatmapVisible, heatmapLoaded]);
+
+    // Load Tsunami Zones
+    useEffect(() => {
+      const layer = tsunamiLayerRef.current;
+      const source = tsunamiSourceRef.current;
+      if (!layer || !source) return;
+
+      layer.setVisible(tsunamiVisible);
+
+      if (tsunamiVisible && !tsunamiLoaded) {
+        setTsunamiLoading(true);
+        
+        fetch('/data/tsunami-zones-philippines.geojson')
+          .then(res => res.json())
+          .then(data => {
+            const format = new GeoJSON();
+            const features = format.readFeatures(data, {
+              featureProjection: 'EPSG:3857',
+            });
+            source.addFeatures(features);
+            setTsunamiLoaded(true);
+            setTsunamiLoading(false);
+          })
+          .catch(err => {
+            console.error('Failed to load tsunami zones', err);
+            setTsunamiLoading(false);
+          });
+      }
+    }, [tsunamiVisible, tsunamiLoaded]);
+
+    // Load Active Volcanoes
+    useEffect(() => {
+      const layer = volcanoLayerRef.current;
+      const source = volcanoSourceRef.current;
+      if (!layer || !source) return;
+
+      layer.setVisible(volcanoesVisible);
+
+      if (volcanoesVisible && !volcanoesLoaded) {
+        setVolcanoesLoading(true);
+        
+        fetch('/data/philippines-volcanoes.geojson')
+          .then(res => res.json())
+          .then(data => {
+            const format = new GeoJSON();
+            const features = format.readFeatures(data, {
+              featureProjection: 'EPSG:3857',
+            });
+            source.addFeatures(features);
+            setVolcanoesLoaded(true);
+            setVolcanoesLoading(false);
+          })
+          .catch(err => {
+            console.error('Failed to load volcanoes', err);
+            setVolcanoesLoading(false);
+          });
+      }
+    }, [volcanoesVisible, volcanoesLoaded]);
+
+    // Load Seismic Stations
+    useEffect(() => {
+      const layer = seismicStationLayerRef.current;
+      const source = seismicStationSourceRef.current;
+      if (!layer || !source) return;
+
+      layer.setVisible(seismicStationsVisible);
+
+      if (seismicStationsVisible && !seismicStationsLoaded) {
+        setSeismicStationsLoading(true);
+        
+        fetch('/data/philippines-seismic-stations.geojson')
+          .then(res => res.json())
+          .then(data => {
+            const format = new GeoJSON();
+            const features = format.readFeatures(data, {
+              featureProjection: 'EPSG:3857',
+            });
+            source.addFeatures(features);
+            setSeismicStationsLoaded(true);
+            setSeismicStationsLoading(false);
+          })
+          .catch(err => {
+            console.error('Failed to load seismic stations', err);
+            setSeismicStationsLoading(false);
+          });
+      }
+    }, [seismicStationsVisible, seismicStationsLoaded]);
+
     const commitSimulatedEvent = useCallback(() => {
       const source = simSourceRef.current;
       if (!source || !simCoordRef.current || simMag === '' || simRadiusKm === '')
@@ -763,32 +1007,94 @@ const SimulationMap = forwardRef<SimulationMapHandle, SimulationMapProps>(
           onSearch={performSearch}
           onSelectResult={handleSelectSearchResult}
         />
-        <button
-          type="button"
-          className="absolute top-4 left-4 z-20 rounded-md bg-white/90 px-3 py-1 text-sm font-medium text-slate-700 shadow hover:bg-white"
-          onClick={() => setFaultLinesVisible(prev => !prev)}
-        >
-          {faultLinesVisible ? 'Hide Fault Lines' : 'Show Fault Lines'}
-        </button>
-        {faultLinesVisible && (
-          <div className="absolute top-4 right-4 z-20 w-48 rounded-md bg-white/90 p-3 text-xs text-slate-700 shadow">
-            <div className="mb-2 text-sm font-semibold text-slate-800">
-              Fault Line Legend
+        
+        {/* Layer Controls Drawer */}
+        <div className="absolute top-4 right-4 z-10 flex flex-col items-end">
+          {/* Toggle Button - Always Visible */}
+          <button
+            onClick={() => setLayersDrawerOpen(!layersDrawerOpen)}
+            className="bg-white rounded-lg shadow-lg p-2 hover:bg-gray-50 transition-colors flex items-center justify-center w-10 h-10 mb-2"
+            title={layersDrawerOpen ? "Hide layers" : "Show layers"}
+          >
+            <span className="text-lg">
+              {layersDrawerOpen ? '✕' : '☰'}
+            </span>
+          </button>
+
+          {/* Drawer Content - Slides from right */}
+          <div
+            className={`bg-white rounded-lg shadow-lg transition-all duration-300 ease-in-out transform ${
+              layersDrawerOpen 
+                ? 'translate-x-0 opacity-100' 
+                : 'translate-x-[120%] opacity-0 pointer-events-none'
+            }`}
+          >
+            <div className="p-2 space-y-1 w-40">
+              <h3 className="font-semibold text-xs mb-1 px-2">Map Layers</h3>
+              
+              {/* Fault Lines Toggle */}
+              <button
+                onClick={() => setFaultLinesVisible(!faultLinesVisible)}
+                className={`w-full text-left px-2 py-1.5 rounded text-xs transition ${
+                  faultLinesVisible ? 'bg-orange-100 text-orange-700' : 'bg-gray-100 hover:bg-gray-200'
+                }`}
+              >
+                <span className="mr-1.5">🗺️</span>
+                Fault Lines
+                {faultLinesLoading && <span className="ml-1 text-[10px]">(Loading...)</span>}
+              </button>
+
+              {/* Heatmap Toggle */}
+              <button
+                onClick={() => setHeatmapVisible(!heatmapVisible)}
+                className={`w-full text-left px-2 py-1.5 rounded text-xs transition ${
+                  heatmapVisible ? 'bg-red-100 text-red-700' : 'bg-gray-100 hover:bg-gray-200'
+                }`}
+              >
+                <span className="mr-1.5">🔥</span>
+                EQ Heatmap
+                {heatmapLoading && <span className="ml-1 text-[10px]">(Loading...)</span>}
+              </button>
+
+              {/* Seismic Stations Toggle */}
+              <button
+                onClick={() => setSeismicStationsVisible(!seismicStationsVisible)}
+                className={`w-full text-left px-2 py-1.5 rounded text-xs transition ${
+                  seismicStationsVisible ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 hover:bg-gray-200'
+                }`}
+              >
+                <span className="mr-1.5">📡</span>
+                Seismic Stations
+                {seismicStationsLoading && <span className="ml-1 text-[10px]">(Loading...)</span>}
+              </button>
+
+              {/* Tsunami Zones Toggle */}
+              <button
+                onClick={() => setTsunamiVisible(!tsunamiVisible)}
+                className={`w-full text-left px-2 py-1.5 rounded text-xs transition ${
+                  tsunamiVisible ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 hover:bg-gray-200'
+                }`}
+              >
+                <span className="mr-1.5">🌊</span>
+                Tsunami Zones
+                {tsunamiLoading && <span className="ml-1 text-[10px]">(Loading...)</span>}
+              </button>
+
+              {/* Volcanoes Toggle */}
+              <button
+                onClick={() => setVolcanoesVisible(!volcanoesVisible)}
+                className={`w-full text-left px-2 py-1.5 rounded text-xs transition ${
+                  volcanoesVisible ? 'bg-orange-100 text-orange-700' : 'bg-gray-100 hover:bg-gray-200'
+                }`}
+              >
+                <span className="mr-1.5">🌋</span>
+                Volcanoes
+                {volcanoesLoading && <span className="ml-1 text-[10px]">(Loading...)</span>}
+              </button>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="h-1 flex-1 rounded bg-orange-500" />
-              <span>Active fault</span>
-            </div>
-            {faultLinesLoading && (
-              <div className="mt-2 text-[11px] text-slate-500">
-                Loading fault lines…
-              </div>
-            )}
-            {faultLinesError && (
-              <div className="mt-2 text-[11px] text-red-500">{faultLinesError}</div>
-            )}
           </div>
-        )}
+        </div>
+
         <div ref={mapContainerRef} className="w-full h-full" />
       </div>
     );

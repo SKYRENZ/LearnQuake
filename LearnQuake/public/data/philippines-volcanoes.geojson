@@ -1,0 +1,75 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [120.9933, 15.1300]
+      },
+      "properties": {
+        "name": "Mount Pinatubo",
+        "status": "Active",
+        "lastEruption": "1991",
+        "elevation": 1486,
+        "alert": "Normal"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [123.6850, 13.2572]
+      },
+      "properties": {
+        "name": "Mayon Volcano",
+        "status": "Active",
+        "lastEruption": "2018",
+        "elevation": 2463,
+        "alert": "Alert Level 1"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [121.0300, 14.0030]
+      },
+      "properties": {
+        "name": "Taal Volcano",
+        "status": "Active",
+        "lastEruption": "2022",
+        "elevation": 311,
+        "alert": "Alert Level 1"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [125.5300, 9.2030]
+      },
+      "properties": {
+        "name": "Mount Hibok-Hibok",
+        "status": "Active",
+        "lastEruption": "1953",
+        "elevation": 1332,
+        "alert": "Normal"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [124.6730, 8.7700]
+      },
+      "properties": {
+        "name": "Mount Kanlaon",
+        "status": "Active",
+        "lastEruption": "2023",
+        "elevation": 2465,
+        "alert": "Alert Level 2"
+      }
+    }
+  ]
+}

@@ -1,0 +1,173 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [121.0581, 14.6507]
+      },
+      "properties": {
+        "name": "Quezon City Seismic Station",
+        "code": "QCN",
+        "agency": "PHIVOLCS",
+        "type": "Broadband",
+        "status": "Active"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [120.5820, 16.4023]
+      },
+      "properties": {
+        "name": "Baguio Seismic Station",
+        "code": "BAG",
+        "agency": "PHIVOLCS",
+        "type": "Broadband",
+        "status": "Active"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [123.7400, 13.1500]
+      },
+      "properties": {
+        "name": "Legazpi Seismic Station",
+        "code": "LGZ",
+        "agency": "PHIVOLCS",
+        "type": "Strong Motion",
+        "status": "Active"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [123.3100, 9.3100]
+      },
+      "properties": {
+        "name": "Dumaguete Seismic Station",
+        "code": "DUM",
+        "agency": "PHIVOLCS",
+        "type": "Broadband",
+        "status": "Active"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [125.6083, 7.0731]
+      },
+      "properties": {
+        "name": "Davao Seismic Station",
+        "code": "DAV",
+        "agency": "PHIVOLCS",
+        "type": "Broadband",
+        "status": "Active"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [124.6500, 8.4833]
+      },
+      "properties": {
+        "name": "Cagayan de Oro Seismic Station",
+        "code": "CDO",
+        "agency": "PHIVOLCS",
+        "type": "Strong Motion",
+        "status": "Active"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [122.0700, 6.9200]
+      },
+      "properties": {
+        "name": "Zamboanga Seismic Station",
+        "code": "ZAM",
+        "agency": "PHIVOLCS",
+        "type": "Broadband",
+        "status": "Active"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [121.9739, 11.5900]
+      },
+      "properties": {
+        "name": "Iloilo Seismic Station",
+        "code": "ILO",
+        "agency": "PHIVOLCS",
+        "type": "Strong Motion",
+        "status": "Active"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [123.8900, 10.3167]
+      },
+      "properties": {
+        "name": "Cebu Seismic Station",
+        "code": "CEB",
+        "agency": "PHIVOLCS",
+        "type": "Broadband",
+        "status": "Active"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [120.5900, 15.4833]
+      },
+      "properties": {
+        "name": "Tarlac Seismic Station",
+        "code": "TAR",
+        "agency": "PHIVOLCS",
+        "type": "Strong Motion",
+        "status": "Active"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [125.4833, 9.7500]
+      },
+      "properties": {
+        "name": "Surigao Seismic Station",
+        "code": "SUR",
+        "agency": "PHIVOLCS",
+        "type": "Broadband",
+        "status": "Active"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [119.4500, 9.0833]
+      },
+      "properties": {
+        "name": "Puerto Princesa Seismic Station",
+        "code": "PPC",
+        "agency": "PHIVOLCS",
+        "type": "Strong Motion",
+        "status": "Active"
+      }
+    }
+  ]
+}
