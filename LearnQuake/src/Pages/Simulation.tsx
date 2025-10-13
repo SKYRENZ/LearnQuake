@@ -7,7 +7,8 @@ import { useSimulationAnalysis } from '../hooks/useSimulationAnalysis';
 import SimulationSidebar from '../components/Simulation/SimulationSidebar';
 import type { SelectedSimulationEvent } from '../components/Simulation/types';
 
-const MAP_ENDPOINT = '/map';
+const MAP_ENDPOINT =
+  import.meta.env.VITE_MAP_ENDPOINT ?? 'http://localhost:5000/map';
 
 export default function Simulation() {
   const simulationMapRef = useRef<SimulationMapHandle | null>(null);
