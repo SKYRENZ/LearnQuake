@@ -160,7 +160,7 @@ export default function Seismology() {
               </div>
 
               {/* Earthquake Data Selector */}
-              <div className="bg-white rounded-lg shadow border border-gray-100 p-3 sm:p-4 flex flex-col h-[50vh] xl:h-[65vh]">
+              <div className="bg-white rounded-lg shadow border border-gray-100 p-3 sm:p-4 flex flex-col h-[50vh] xl:h-[75vh]">
                 <h2 className="font-roboto font-semibold text-xs uppercase tracking-wider text-black mb-3">
                   Earthquake Data Selector
                 </h2>
@@ -271,6 +271,51 @@ export default function Seismology() {
           {/* Right Side - Analysis Tools (Fixed for proper desktop width) */}
           <div className="order-2 space-y-3 sm:space-y-4">
             
+            {/* Selected Earthquake Info - ALWAYS SHOW with preview */}
+            <div className={`rounded-lg p-3 sm:p-4 ${
+              selectedEarthquake 
+                ? 'bg-blue-50 border border-blue-200' 
+                : 'bg-gray-50 border border-gray-200'
+            }`}>
+              <h2 className={`font-roboto font-medium text-xs uppercase tracking-wider mb-2 ${
+                selectedEarthquake ? 'text-blue-800' : 'text-gray-600'
+              }`}>
+                {selectedEarthquake ? 'Selected Earthquake' : 'Earthquake Preview'}
+              </h2>
+              {selectedEarthquake ? (
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-roboto font-bold text-sm text-red-600">
+                      M {selectedEarthquake.magnitude.toFixed(1)}
+                    </span>
+                    <span className="font-roboto font-medium text-xs text-blue-600">
+                      {selectedEarthquake.depth.toFixed(0)}km deep
+                    </span>
+                  </div>
+                  <div className="font-roboto font-medium text-xs text-gray-700">
+                    {selectedEarthquake.place}
+                  </div>
+                  <div className="font-roboto font-medium text-xs text-gray-500">
+                    {new Date(selectedEarthquake.time).toLocaleDateString('en-US', { 
+                      weekday: 'short',
+                      month: 'short', 
+                      day: 'numeric',
+                      year: 'numeric'
+                    })} at {new Date(selectedEarthquake.time).toLocaleTimeString([], { 
+                      hour: '2-digit', 
+                      minute: '2-digit' 
+                    })}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-2">
+                  <div className="text-xs text-gray-500">
+                    Select an earthquake in earthquake data selector to view its seismic wave pattern and frequency spectrum
+                  </div>
+                </div>
+              )}
+            </div>
+            
             {/* Frequency Range */}
             <div className="bg-white rounded-lg shadow border border-gray-100 p-3 sm:p-4">
               <h2 className="font-roboto font-medium text-xs uppercase tracking-wider text-black mb-3">
@@ -312,14 +357,14 @@ export default function Seismology() {
               </div>
             </div>
 
-            {/* Time Series Filtering */}
+            {/* Time Series Filtering - ALWAYS SHOW with preview */}
             <div className="bg-white rounded-lg shadow border border-gray-100 p-3 sm:p-4">
               <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-3 sm:mb-4 gap-2 lg:gap-0">
                 <h2 className="font-roboto font-medium text-xs sm:text-sm uppercase tracking-wider text-black">
                   Time Series Filtering
                   {selectedEarthquake && (
-                    <span className="text-[10px] sm:text-xs text-blue-600 ml-1 sm:ml-2 normal-case block lg:inline">
-                      - M{selectedEarthquake.magnitude.toFixed(1)} {selectedEarthquake.place.length > 25 ? selectedEarthquake.place.substring(0, 25) + '...' : selectedEarthquake.place}
+                    <span className="text-[10px] sm:text-xs text-blue-600 ml-1 sm:ml-2 normal-case">
+                      - M{selectedEarthquake.magnitude.toFixed(1)}
                     </span>
                   )}
                 </h2>
@@ -343,7 +388,7 @@ export default function Seismology() {
               
               <div className="relative h-32 sm:h-40">
                 <div className="absolute inset-0 flex">
-                  {/* Y-axis labels */}
+                  {/* Y-axis labels - ALWAYS SHOW with preview values */}
                   <div className="flex flex-col justify-between items-end pr-1 sm:pr-2 py-1 sm:py-2 text-right min-w-[30px] sm:min-w-[40px]">
                     {selectedEarthquake ? (
                       <>
@@ -363,11 +408,11 @@ export default function Seismology() {
                       </>
                     ) : (
                       <>
-                        <span className="font-roboto font-medium text-[8px] sm:text-[10px] text-gray-400">50</span>
-                        <span className="font-roboto font-medium text-[8px] sm:text-[10px] text-gray-400">25</span>
-                        <span className="font-roboto font-medium text-[8px] sm:text-[10px] text-gray-400">0</span>
-                        <span className="font-roboto font-medium text-[8px] sm:text-[10px] text-gray-400">-25</span>
-                        <span className="font-roboto font-medium text-[8px] sm:text-[10px] text-gray-400">-50</span>
+                        <span className="font-roboto font-medium text-[8px] sm:text-[10px] text-gray-300">50</span>
+                        <span className="font-roboto font-medium text-[8px] sm:text-[10px] text-gray-300">25</span>
+                        <span className="font-roboto font-medium text-[8px] sm:text-[10px] text-gray-300">0</span>
+                        <span className="font-roboto font-medium text-[8px] sm:text-[10px] text-gray-300">-25</span>
+                        <span className="font-roboto font-medium text-[8px] sm:text-[10px] text-gray-300">-50</span>
                       </>
                     )}
                   </div>
@@ -393,7 +438,7 @@ export default function Seismology() {
                       {/* Time series path */}
                       <path 
                         d={createTimeSeriesPath(timeSeriesData, 600, 160)}
-                        stroke={selectedEarthquake ? "#3B38A0" : "#9CA3AF"} 
+                        stroke={selectedEarthquake ? "#3B38A0" : "#D1D5DB"} 
                         strokeWidth="1.5" 
                         fill="none"
                       />
@@ -401,18 +446,18 @@ export default function Seismology() {
                     
                     {/* X-axis labels */}
                     <div className="absolute -bottom-3 sm:-bottom-4 left-0 right-0 flex justify-between text-[7px] sm:text-[8px]">
-                      <span className="text-gray-400">0s</span>
-                      <span className="text-gray-400">5s</span>
-                      <span className="text-gray-400">10s</span>
-                      <span className="text-gray-400">15s</span>
-                      <span className="text-gray-400">20s</span>
+                      <span className={selectedEarthquake ? "text-gray-400" : "text-gray-300"}>0s</span>
+                      <span className={selectedEarthquake ? "text-gray-400" : "text-gray-300"}>5s</span>
+                      <span className={selectedEarthquake ? "text-gray-400" : "text-gray-300"}>10s</span>
+                      <span className={selectedEarthquake ? "text-gray-400" : "text-gray-300"}>15s</span>
+                      <span className={selectedEarthquake ? "text-gray-400" : "text-gray-300"}>20s</span>
                     </div>
                   </div>
                 </div>
               </div>
               
-              {/* Graph info - FIXED spacing */}
-              <div className="mt-4 text-[10px] sm:text-xs text-gray-500">
+              {/* Graph info - ALWAYS SHOW with preview */}
+              <div className="mt-8 text-[10px] sm:text-xs text-gray-500">
                 {selectedEarthquake ? (
                   <div className="flex flex-col sm:flex-row sm:justify-between gap-2 sm:gap-4">
                     <span>Amplitude: ±{(selectedEarthquake.magnitude * 50).toFixed(1)} units</span>
@@ -420,18 +465,22 @@ export default function Seismology() {
                     <span>Depth: {selectedEarthquake.depth.toFixed(0)}km</span>
                   </div>
                 ) : (
-                  <span>💡 Select an earthquake to view its seismic wave pattern</span>
+                  <div className="flex flex-col sm:flex-row sm:justify-between gap-2 sm:gap-4">
+                    <span className="text-gray-400">Amplitude: -- units</span>
+                    <span className="text-gray-400">Frequency: {frequencyMin}-{frequencyMax} Hz</span>
+                    <span className="text-gray-400">Depth: -- km</span>
+                  </div>
                 )}
               </div>
             </div>
 
-            {/* Spectral Analysis - FIXED spacing and removed extra space */}
+            {/* Spectral Analysis - ALWAYS SHOW with preview */}
             <div className="bg-white rounded-lg shadow border border-gray-100 p-3 sm:p-4">
               <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-3 sm:mb-4 gap-2 lg:gap-0">
                 <h2 className="font-roboto font-medium text-xs uppercase tracking-wider text-black">
                   Spectral Analysis
                   {selectedEarthquake && (
-                    <span className="text-[10px] sm:text-xs text-blue-600 ml-1 sm:ml-2 normal-case block lg:inline">
+                    <span className="text-[10px] sm:text-xs text-blue-600 ml-1 sm:ml-2 normal-case">
                       - M{selectedEarthquake.magnitude.toFixed(1)}
                     </span>
                   )}
@@ -450,7 +499,7 @@ export default function Seismology() {
               
               <div className="relative h-[200px] sm:h-[240px]">
                 <div className="absolute inset-0 flex">
-                  {/* Y-axis labels */}
+                  {/* Y-axis labels - ALWAYS SHOW with preview values */}
                   <div className="flex flex-col justify-between items-end pr-1 sm:pr-2 py-1 sm:py-2 text-right min-w-[25px] sm:min-w-[30px]">
                     {selectedEarthquake ? (
                       <>
@@ -470,11 +519,11 @@ export default function Seismology() {
                       </>
                     ) : (
                       <>
-                        <span className="font-roboto font-medium text-[7px] sm:text-[8px] text-gray-400">100</span>
-                        <span className="font-roboto font-medium text-[7px] sm:text-[8px] text-gray-400">75</span>
-                        <span className="font-roboto font-medium text-[7px] sm:text-[8px] text-gray-400">50</span>
-                        <span className="font-roboto font-medium text-[7px] sm:text-[8px] text-gray-400">25</span>
-                        <span className="font-roboto font-medium text-[7px] sm:text-[8px] text-gray-400">0</span>
+                        <span className="font-roboto font-medium text-[7px] sm:text-[8px] text-gray-300">100</span>
+                        <span className="font-roboto font-medium text-[7px] sm:text-[8px] text-gray-300">75</span>
+                        <span className="font-roboto font-medium text-[7px] sm:text-[8px] text-gray-300">50</span>
+                        <span className="font-roboto font-medium text-[7px] sm:text-[8px] text-gray-300">25</span>
+                        <span className="font-roboto font-medium text-[7px] sm:text-[8px] text-gray-300">0</span>
                       </>
                     )}
                   </div>
@@ -500,8 +549,8 @@ export default function Seismology() {
                         
                         {/* Everything inside clipping path */}
                         <g clipPath="url(#graphClip)">
-                          {/* Wave Markers - Simplified for better mobile display */}
-                          {selectedEarthquake && (() => {
+                          {/* Wave Markers - ALWAYS SHOW, but faded when no selection */}
+                          {(() => {
                             const baseFreq = Math.max(0.1, parseFloat(frequencyMin) || 0.1);
                             const maxFreq = Math.min(20.0, parseFloat(frequencyMax) || 10.0);
                             const freqRange = maxFreq - baseFreq;
@@ -523,10 +572,11 @@ export default function Seismology() {
                             const pWaveX = getXPosition(pWaveFreq);
                             const sWaveX = getXPosition(sWaveFreq);
                             const surfaceWaveX = getXPosition(surfaceWaveFreq);
+                            const opacity = selectedEarthquake ? "0.7" : "0.3";
                             
                             return (
                               <>
-                                {/* P-wave marker - Only line, no text */}
+                                {/* P-wave marker - Always show */}
                                 {pWaveX !== null && (
                                   <line 
                                     x1={pWaveX} y1="0" 
@@ -534,11 +584,11 @@ export default function Seismology() {
                                     stroke="#8B5CF6" 
                                     strokeWidth="2" 
                                     strokeDasharray="3,3"
-                                    opacity="0.7"
+                                    opacity={opacity}
                                   />
                                 )}
                                 
-                                {/* S-wave marker - Only line, no text */}
+                                {/* S-wave marker - Always show */}
                                 {sWaveX !== null && (
                                   <line 
                                     x1={sWaveX} y1="0" 
@@ -546,11 +596,11 @@ export default function Seismology() {
                                     stroke="#10B981" 
                                     strokeWidth="2" 
                                     strokeDasharray="3,3"
-                                    opacity="0.7"
+                                    opacity={opacity}
                                   />
                                 )}
                                 
-                                {/* Surface wave marker - Only line, no text */}
+                                {/* Surface wave marker - Always show */}
                                 {surfaceWaveX !== null && (
                                   <line 
                                     x1={surfaceWaveX} y1="0" 
@@ -558,7 +608,7 @@ export default function Seismology() {
                                     stroke="#EF4444" 
                                     strokeWidth="2" 
                                     strokeDasharray="3,3"
-                                    opacity="0.7"
+                                    opacity={opacity}
                                   />
                                 )}
                               </>
@@ -568,17 +618,19 @@ export default function Seismology() {
                           {/* FFT Path */}
                           <path 
                             d={createSpectralPath(spectralData.fft, 420, 240)}
-                            stroke="#6C60FF" 
+                            stroke={selectedEarthquake ? "#6C60FF" : "#D1D5DB"} 
                             strokeWidth="1.5" 
                             fill="none"
+                            opacity={selectedEarthquake ? "1" : "0.5"}
                           />
                           
                           {/* Spectrogram Path */}
                           <path 
                             d={createSpectralPath(spectralData.spectrogram, 420, 240)}
-                            stroke="#CE2A96" 
+                            stroke={selectedEarthquake ? "#CE2A96" : "#D1D5DB"} 
                             strokeWidth="1.5" 
                             fill="none"
+                            opacity={selectedEarthquake ? "1" : "0.5"}
                           />
                         </g>
                       </svg>
@@ -586,84 +638,102 @@ export default function Seismology() {
                     
                     {/* X-axis labels (Frequency) */}
                     <div className="absolute -bottom-3 sm:-bottom-4 left-0 right-0 flex justify-between text-[7px] sm:text-[8px]">
-                      <span className="text-gray-400">{frequencyMin}Hz</span>
-                      <span className="text-gray-400">
+                      <span className={selectedEarthquake ? "text-gray-400" : "text-gray-300"}>{frequencyMin}Hz</span>
+                      <span className={selectedEarthquake ? "text-gray-400" : "text-gray-300"}>
                         {((parseFloat(frequencyMin) + parseFloat(frequencyMax)) / 2).toFixed(1)}Hz
                       </span>
-                      <span className="text-gray-400">{frequencyMax}Hz</span>
+                      <span className={selectedEarthquake ? "text-gray-400" : "text-gray-300"}>{frequencyMax}Hz</span>
                     </div>
                   </div>
                 </div>
               </div>
               
-              {/* Enhanced spectral info - FIXED spacing */}
+              {/* Enhanced spectral info - ALWAYS SHOW with preview */}
               <div className="mt-4 text-[9px] sm:text-xs text-gray-500">
-                {selectedEarthquake ? (
-                  <div className="space-y-2">
-                    {/* Mobile: 2 columns - Wave markers (left) vs Earthquake info (right) with better spacing */}
-                    <div className="grid grid-cols-2 gap-4 sm:hidden">
-                      {/* Left Column: Wave Markers */}
-                      <div className="space-y-1.5">
-                        <div className="flex items-center space-x-1.5">
-                          <div className="w-1.5 h-1.5 rounded-full bg-purple-500 flex-shrink-0"></div>
-                          <span>P: {(parseFloat(frequencyMin) * 2).toFixed(1)}Hz</span>
-                        </div>
-                        <div className="flex items-center space-x-1.5">
-                          <div className="w-1.5 h-1.5 rounded-full bg-green-500 flex-shrink-0"></div>
-                          <span>S: {(parseFloat(frequencyMin) * 1.2).toFixed(1)}Hz</span>
-                        </div>
-                        <div className="flex items-center space-x-1.5">
-                          <div className="w-1.5 h-1.5 rounded-full bg-red-500 flex-shrink-0"></div>
-                          <span>Surf: {(parseFloat(frequencyMin) * 0.7).toFixed(1)}Hz</span>
-                        </div>
+                <div className="space-y-2">
+                  {/* Mobile: 2 columns - Wave markers (left) vs Earthquake info (right) with better spacing */}
+                  <div className="grid grid-cols-2 gap-4 sm:hidden">
+                    {/* Left Column: Wave Markers - ALWAYS SHOW */}
+                    <div className="space-y-1.5">
+                      <div className="flex items-center space-x-1.5">
+                        <div className="w-1.5 h-1.5 rounded-full bg-purple-500 flex-shrink-0"></div>
+                        <span className={selectedEarthquake ? "" : "text-gray-400"}>
+                          P: {selectedEarthquake ? (parseFloat(frequencyMin) * 2).toFixed(1) : '--'}Hz
+                        </span>
                       </div>
-                      
-                      {/* Right Column: Earthquake Info */}
-                      <div className="space-y-1.5 text-right">
-                        <div>Mag: {selectedEarthquake.magnitude.toFixed(1)}</div>
-                        <div>Depth: {selectedEarthquake.depth.toFixed(0)}km</div>
-                        <div>Range: {frequencyMin}-{frequencyMax}Hz</div>
+                      <div className="flex items-center space-x-1.5">
+                        <div className="w-1.5 h-1.5 rounded-full bg-green-500 flex-shrink-0"></div>
+                        <span className={selectedEarthquake ? "" : "text-gray-400"}>
+                          S: {selectedEarthquake ? (parseFloat(frequencyMin) * 1.2).toFixed(1) : '--'}Hz
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-1.5">
+                        <div className="w-1.5 h-1.5 rounded-full bg-red-500 flex-shrink-0"></div>
+                        <span className={selectedEarthquake ? "" : "text-gray-400"}>
+                          Surf: {selectedEarthquake ? (parseFloat(frequencyMin) * 0.7).toFixed(1) : '--'}Hz
+                        </span>
                       </div>
                     </div>
+                    
+                    {/* Right Column: Earthquake Info - ALWAYS SHOW */}
+                    <div className="space-y-1.5 text-right">
+                      <div className={selectedEarthquake ? "" : "text-gray-400"}>
+                        Mag: {selectedEarthquake ? selectedEarthquake.magnitude.toFixed(1) : '--'}
+                      </div>
+                      <div className={selectedEarthquake ? "" : "text-gray-400"}>
+                        Depth: {selectedEarthquake ? selectedEarthquake.depth.toFixed(0) : '--'}km
+                      </div>
+                      <div className={selectedEarthquake ? "" : "text-gray-400"}>
+                        Range: {frequencyMin}-{frequencyMax}Hz
+                      </div>
+                    </div>
+                  </div>
 
-                    {/* Desktop: Original layout (hidden on mobile, shown on sm+) with better spacing */}
-                    <div className="hidden sm:block space-y-2">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4">
-                        <div className="flex items-center space-x-2">
-                          <div className="w-2 h-2 rounded-full bg-purple-500 flex-shrink-0"></div>
-                          <span className="truncate">P-waves: ~{(parseFloat(frequencyMin) * 2).toFixed(1)}Hz</span>
-                        </div>
-                        <div className="sm:text-right">
-                          <span>Magnitude: {selectedEarthquake.magnitude.toFixed(1)}</span>
-                        </div>
+                  {/* Desktop: Original layout (hidden on mobile, shown on sm+) with better spacing */}
+                  <div className="hidden sm:block space-y-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4">
+                      <div className="flex items-center space-x-2">
+                        <div className="w-2 h-2 rounded-full bg-purple-500 flex-shrink-0"></div>
+                        <span className={`truncate ${selectedEarthquake ? "" : "text-gray-400"}`}>
+                          P-waves: {selectedEarthquake ? `~${(parseFloat(frequencyMin) * 2).toFixed(1)}Hz` : '-- Hz'}
+                        </span>
                       </div>
-                      
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4">
-                        <div className="flex items-center space-x-2">
-                          <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0"></div>
-                          <span className="truncate">S-waves: ~{(parseFloat(frequencyMin) * 1.2).toFixed(1)}Hz</span>
-                        </div>
-                        <div className="sm:text-right">
-                          <span>Depth: {selectedEarthquake.depth.toFixed(0)}km</span>
-                        </div>
+                      <div className="sm:text-right">
+                        <span className={selectedEarthquake ? "" : "text-gray-400"}>
+                          Magnitude: {selectedEarthquake ? selectedEarthquake.magnitude.toFixed(1) : '--'}
+                        </span>
                       </div>
-                      
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4">
-                        <div className="flex items-center space-x-2">
-                          <div className="w-2 h-2 rounded-full bg-red-500 flex-shrink-0"></div>
-                          <span className="truncate">Surface: ~{(parseFloat(frequencyMin) * 0.7).toFixed(1)}Hz</span>
-                        </div>
-                        <div className="sm:text-right">
-                          <span>Range: {frequencyMin}-{frequencyMax}Hz</span>
-                        </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4">
+                      <div className="flex items-center space-x-2">
+                        <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0"></div>
+                        <span className={`truncate ${selectedEarthquake ? "" : "text-gray-400"}`}>
+                          S-waves: {selectedEarthquake ? `~${(parseFloat(frequencyMin) * 1.2).toFixed(1)}Hz` : '-- Hz'}
+                        </span>
+                      </div>
+                      <div className="sm:text-right">
+                        <span className={selectedEarthquake ? "" : "text-gray-400"}>
+                          Depth: {selectedEarthquake ? selectedEarthquake.depth.toFixed(0) : '--'}km
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4">
+                      <div className="flex items-center space-x-2">
+                        <div className="w-2 h-2 rounded-full bg-red-500 flex-shrink-0"></div>
+                        <span className={`truncate ${selectedEarthquake ? "" : "text-gray-400"}`}>
+                          Surface: {selectedEarthquake ? `~${(parseFloat(frequencyMin) * 0.7).toFixed(1)}Hz` : '-- Hz'}
+                        </span>
+                      </div>
+                      <div className="sm:text-right">
+                        <span className={selectedEarthquake ? "" : "text-gray-400"}>
+                          Range: {frequencyMin}-{frequencyMax}Hz
+                        </span>
                       </div>
                     </div>
                   </div>
-                ) : (
-                  <div className="text-center py-2">
-                    <span>💡 Select an earthquake to view its frequency spectrum with wave markers</span>
-                  </div>
-                )}
+                </div>
               </div>
             </div>
           </div>
