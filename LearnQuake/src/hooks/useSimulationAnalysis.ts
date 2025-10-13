@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
 import type Feature from 'ol/Feature';
-import type { FeatureLike } from 'ol/Feature';
+import type Geometry from 'ol/geom/Geometry';
 import type Polygon from 'ol/geom/Polygon';
 import { toLonLat } from 'ol/proj';
 
@@ -40,7 +40,7 @@ export function useSimulationAnalysis(mapEndpoint: string, simPlace: string) {
     useState<HoveredSimulationMeta | null>(null);
   const [simSummaryAnalysis, setSimSummaryAnalysis] =
     useState<AISimulationAnalysis | null>(null);
-  const hoveredSimFeatureRef = useRef<FeatureLike | null>(null);
+  const hoveredSimFeatureRef = useRef<Feature<Geometry> | null>(null);
 
   const requestSimulationAnalysis = useCallback(
     async (
