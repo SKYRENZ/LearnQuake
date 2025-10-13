@@ -7,31 +7,16 @@
   node_bundler = "esbuild"
 
 [[redirects]]
+  from = "/map"
+  to = "/.netlify/functions/map/map"
+  status = 200
+
+[[redirects]]
   from = "/map/*"
-  to = "/.netlify/functions/map"
+  to = "/.netlify/functions/map/map/:splat"
   status = 200
 
 [[redirects]]
-  from = "/api/earthquakes/*"
-  to = "/.netlify/functions/earthquakes"
-  status = 200
-
-[[redirects]]
-  from = "/api/news"
-  to = "/.netlify/functions/map"
-  status = 200
-
-[[redirects]]
-  from = "/api/news/*"
-  to = "/.netlify/functions/map"
-  status = 200
-
-[[redirects]]
-  from = "/api/footage"
-  to = "/.netlify/functions/map"
-  status = 200
-
-[[redirects]]
-  from = "/api/footage/*"
-  to = "/.netlify/functions/map"
+  from = "/api/*"
+  to = "/.netlify/functions/map/api/:splat"
   status = 200
