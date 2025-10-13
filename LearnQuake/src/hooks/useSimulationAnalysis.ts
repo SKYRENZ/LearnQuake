@@ -71,7 +71,8 @@ export function useSimulationAnalysis(mapEndpoint: string, simPlace: string) {
 
       try {
         const [lon, lat] = toLonLat(coord3857);
-        const res = await fetch(mapEndpoint, {
+        const resolvedEndpoint = mapEndpoint || '/.netlify/functions/map';
+        const res = await fetch(resolvedEndpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
