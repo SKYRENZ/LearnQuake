@@ -33,9 +33,9 @@ export default function InfoHub() {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedCard, setSelectedCard] = useState<any>(null);
 
-  // Updated query for latest earthquake news
+  // Very specific earthquake query
   const { news, loading: newsLoading, error: newsError } = useNews(
-    'latest earthquake news', // Simpler, more focused query
+    'earthquake magnitude OR earthquake strikes OR earthquake damages', 
     6
   );
 
