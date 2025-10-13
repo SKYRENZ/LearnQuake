@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import Header from '../components/Header';
 import InfoCardModal from '../components/ui/InfoCardModal';
+import { useNews } from '../hooks/useNews';
 
 import arrow from '../assets/InfoHub/arrow.png';
 import topLeft from '../assets/InfoHub/top-left.png';
@@ -31,6 +32,21 @@ export default function InfoHub() {
   // Modal state
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedCard, setSelectedCard] = useState<any>(null);
+
+  // Updated query for latest earthquake news
+  const { news, loading: newsLoading, error: newsError } = useNews(
+    'latest earthquake news', // Simpler, more focused query
+    6
+  );
+
+  // Format date function
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  };
 
   // Card data for modals
   const cardData = {
@@ -451,63 +467,157 @@ export default function InfoHub() {
           <div className="text-center mb-8 md:mb-12">
             <h2 className="font-instrument font-bold text-2xl md:text-3xl text-gray-900 mb-4">
               <span className="text-quake-purple">Latest</span> <span className="text-gray-900">News</span>
-              </h2>
+            </h2>
             <div className="w-24 h-1 bg-gradient-to-r from-quake-purple to-quake-dark-blue mx-auto rounded-full"></div>
+            <p className="text-gray-600 text-sm mt-4 font-instrument">
+              Recent earthquake and seismic activity news from the past month
+            </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
-            {[1, 2, 3].map((n) => (
-              <article 
-                key={n} 
-                className="group bg-white rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 hover:scale-105 hover:-translate-y-2 relative"
-                style={cardShadow}
-                onClick={() => {
-                  setSelectedCard({
-                    title: "Biggest Earthquakes in 2025",
-                    description: "Comprehensive coverage of significant seismic events in 2025.",
-                    image: third,
-                    content: (
-                      <div className="space-y-4">
-                        <h4 className="font-instrument font-bold text-lg text-quake-dark-blue">Event Summary</h4>
-                        <p className="text-sm leading-relaxed">This article summarizes major earthquakes by magnitude, region, and impacts, highlighting advances in early warning systems and building codes that reduced casualties in several densely populated areas.</p>
-                        <p className="text-sm text-gray-600">References: USGS Event Pages; EMSC Reports; Peer-reviewed case studies (2023-2025).</p>
-                      </div>
-                    )
-                  });
-                  setModalOpen(true);
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.boxShadow = hoverShadow.boxShadow;
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.boxShadow = cardShadow.boxShadow;
-                }}
-              >
-                <div className="aspect-[4/3] relative overflow-hidden">
-                  <img 
-                    src={third} 
-                    alt={`News ${n}`} 
-                    className="w-full h-full object-cover" 
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
+         {newsLoading && (
+            <div className="flex justify-center items-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-quake-purple"></div>
+              <span className="ml-3 text-gray-600 font-instrument">Loading earthquake news...</span>
+            </div>
+          )}
+
+          {newsError && (
+            <div className="text-center py-8">
+              <div className="bg-red-50 border border-red-200 rounded-xl p-6 max-w-md mx-auto">
+                <p className="text-red-600 font-instrument font-semibold">Failed to load news</p>
+                <p className="text-red-500 text-sm mt-2">{newsError}</p>
+                <button 
+                  onClick={() => window.location.reload()} 
+                  className="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-instrument hover:bg-red-700 transition-colors"
+                >
+                  Retry
+                </button>
+              </div>
+            </div>
+          )}
+
+          {!newsLoading && !newsError && news.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+              {news.map((article, index) => (
+                <div 
+                  key={index} 
+                  className="group bg-white rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 hover:scale-105 hover:-translate-y-2 relative"
+                  style={cardShadow}
+                  onClick={() => {
+                    setSelectedCard({
+                      title: article.title,
+                      description: article.description || 'No description available',
+                      image: article.urlToImage || third,
+                      content: (
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="font-instrument font-semibold text-quake-dark-blue bg-blue-50 px-3 py-1 rounded-full">
+                              {article.source.name}
+                            </span>
+                            <span className="text-gray-500 font-instrument">
+                              {formatDate(article.publishedAt)}
+                            </span>
+                          </div>
+                          
+                          <div className="bg-white p-4 rounded-lg border border-gray-100">
+                            <h4 className="font-instrument font-bold text-lg text-quake-dark-blue mb-3">Article Summary:</h4>
+                            <p className="text-gray-700 leading-relaxed text-sm mb-4">
+                              {article.description || 'No description available for this article.'}
+                            </p>
+                          </div>
+                          
+                          <div className="pt-4 border-t border-gray-200 text-center">
+                            <a
+                              href={article.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center px-6 py-3 bg-quake-purple text-white font-instrument font-semibold rounded-xl hover:bg-quake-dark-blue transition-all duration-300 hover:scale-105 hover:shadow-lg"
+                            >
+                              Read Full Article
+                              <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                              </svg>
+                            </a>
+                          </div>
+                          
+                          <div className="bg-gray-50 p-3 rounded-lg text-xs text-gray-600 font-instrument">
+                            <p><strong>Published:</strong> {new Date(article.publishedAt).toLocaleString()}</p>
+                            <p><strong>Source:</strong> {article.source.name}</p>
+                          </div>
+                        </div>
+                      )
+                    });
+                    setModalOpen(true);
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.boxShadow = hoverShadow.boxShadow;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.boxShadow = cardShadow.boxShadow;
+                  }}
+                >
+                  <div className="aspect-[4/3] relative overflow-hidden">
+                    <img 
+                      src={article.urlToImage || third} 
+                      alt={article.title}
+                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                      onError={(e) => {
+                        e.currentTarget.src = third;
+                      }}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    <div className="absolute top-4 left-4">
+                      <span className="bg-quake-dark-blue text-white text-xs font-instrument font-semibold px-3 py-1 rounded-full">
+                        Latest
+                      </span>
+                    </div>
+                    <div className="absolute bottom-4 left-4 right-4">
+                      <p className="text-white text-sm font-instrument font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        Click to read more
+                      </p>
+                    </div>
+                  </div>
+                  <div className="p-6">
+                    <h3 className="font-instrument font-bold text-lg md:text-xl text-gray-900 mb-3 transition-colors duration-300 group-hover:text-quake-purple line-clamp-2">
+                      {article.title}
+                    </h3>
+                    <p className="font-instrument text-sm text-gray-600 leading-relaxed mb-4 line-clamp-3">
+                      {article.description || 'No description available'}
+                    </p>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-instrument font-semibold text-quake-dark-blue bg-blue-50 px-2 py-1 rounded">
+                        {article.source.name}
+                      </span>
+                      <span className="text-xs text-gray-500 font-instrument">
+                        {formatDate(article.publishedAt)}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <div className="p-6">
-                  <h3 className="font-instrument font-bold text-lg md:text-xl text-gray-900 mb-3">
-                  Biggest Earthquakes in 2025
-                </h3>
-                  <p className="font-instrument text-sm text-gray-600 leading-relaxed mb-4">
-                  Comprehensive coverage of the most significant seismic events that occurred in 2025, including their impact and aftermath.
-                </p>
-                </div>
-              </article>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
+
+          {!newsLoading && !newsError && news.length === 0 && (
+            <div className="text-center py-8">
+              <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 max-w-md mx-auto">
+                <p className="text-gray-600 font-instrument">No recent earthquake news available</p>
+                <p className="text-gray-500 text-sm mt-2">Try refreshing the page or check back later for updates</p>
+                <button 
+                  onClick={() => window.location.reload()} 
+                  className="mt-3 px-4 py-2 bg-quake-purple text-white rounded-lg text-sm font-instrument hover:bg-quake-dark-blue transition-colors"
+                >
+                  Refresh
+                </button>
+              </div>
+            </div>
+          )}
         </section>
       </main>
 
       {/* Modal */}
       {selectedCard && (
-      <InfoCardModal
+        <InfoCardModal
           isOpen={modalOpen}
           onClose={closeModal}
           title={selectedCard.title}
