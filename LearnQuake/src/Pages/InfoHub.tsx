@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import Header from '../components/Header';
 import InfoCardModal from '../components/ui/InfoCardModal';
+import { useNews } from '../hooks/useNews';
 
 import arrow from '../assets/InfoHub/arrow.png';
 import topLeft from '../assets/InfoHub/top-left.png';
@@ -32,6 +33,21 @@ export default function InfoHub() {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedCard, setSelectedCard] = useState<any>(null);
 
+  // Very specific earthquake query
+  const { news, loading: newsLoading, error: newsError } = useNews(
+    'earthquake magnitude OR earthquake strikes OR earthquake damages', 
+    6
+  );
+
+  // Format date function
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  };
+
   // Card data for modals
   const cardData = {
     topLeft: {
@@ -39,14 +55,14 @@ export default function InfoHub() {
       description: "Learn essential safety procedures and actions to take when an earthquake occurs to protect yourself and others.",
       image: topLeft,
       content: (
-        <div className="space-y-3">
-          <h4 className="font-instrument font-bold text-lg text-quake-dark-blue">Safety Steps:</h4>
-          <ul className="space-y-2 text-sm">
-            <li>• Drop to your hands and knees</li>
-            <li>• Cover your head and neck with your arms</li>
-            <li>• Hold on to any sturdy furniture</li>
-            <li>• Stay indoors until shaking stops</li>
+        <div className="space-y-4">
+          <h4 className="font-instrument font-bold text-lg text-quake-dark-blue">Safety Steps</h4>
+          <ul className="list-disc pl-5 space-y-2 text-sm leading-relaxed">
+            <li>Drop to your hands and knees. This position protects you from being knocked over and allows you to stay low and crawl to shelter if nearby. [USGS Preparedness Guide]</li>
+            <li>Cover your head and neck with your arms and, if possible, get under a sturdy table or desk. Stay away from windows and heavy objects that can fall. [Ready.gov]</li>
+            <li>Hold on to your shelter until the shaking stops. If there is no shelter nearby, crouch next to an interior wall away from windows. [Red Cross Earthquake Safety]</li>
           </ul>
+          <p className="text-sm text-gray-600">References: U.S. Geological Survey (USGS); Ready.gov Earthquake Preparedness; American Red Cross.</p>
         </div>
       )
     },
@@ -55,9 +71,10 @@ export default function InfoHub() {
       description: "Stay updated with the latest earthquake news and seismic activity around the world.",
       image: recentEarthquakeNews,
       content: (
-        <div className="space-y-3">
-          <h4 className="font-instrument font-bold text-lg text-quake-dark-blue">Latest Updates:</h4>
-          <p className="text-sm">Get real-time information about recent earthquakes, their magnitude, location, and impact assessments.</p>
+        <div className="space-y-4">
+          <h4 className="font-instrument font-bold text-lg text-quake-dark-blue">Latest Updates</h4>
+          <p className="text-sm leading-relaxed">Global seismic networks continuously detect and locate earthquake activity. Magnitudes are first reported using automatic solutions and later revised after manual analyst review. Impact estimates consider depth, proximity to population centers, and local building resilience.</p>
+          <p className="text-sm text-gray-600">References: USGS Earthquake Hazards Program; Global Seismographic Network (GSN).</p>
         </div>
       )
     },
@@ -66,9 +83,10 @@ export default function InfoHub() {
       description: "Explore the science of earthquakes and learn how seismologists study seismic activity.",
       image: seismology,
       content: (
-        <div className="space-y-3">
+        <div className="space-y-4">
           <h4 className="font-instrument font-bold text-lg text-quake-dark-blue">What is Seismology?</h4>
-          <p className="text-sm">Seismology is the scientific study of earthquakes and the propagation of elastic waves through the Earth.</p>
+          <p className="text-sm leading-relaxed">Seismology is the scientific study of earthquakes and elastic waves that propagate through the Earth. Instruments called seismometers record ground motion as seismograms, which scientists analyze to determine magnitude, location, focal mechanisms, and fault behavior.</p>
+          <p className="text-sm text-gray-600">References: Lay & Wallace, Modern Global Seismology; USGS Seismology Basics.</p>
         </div>
       )
     },
@@ -77,13 +95,14 @@ export default function InfoHub() {
       description: "The fundamental earthquake safety technique that can save lives during seismic events.",
       image: duckCoverHold,
       content: (
-        <div className="space-y-3">
-          <h4 className="font-instrument font-bold text-lg text-quake-dark-blue">The Three Steps:</h4>
-          <ul className="space-y-2 text-sm">
-            <li>• <strong>Duck:</strong> Drop down to the ground</li>
-            <li>• <strong>Cover:</strong> Protect your head and neck</li>
-            <li>• <strong>Hold:</strong> Hold on to something sturdy</li>
+        <div className="space-y-4">
+          <h4 className="font-instrument font-bold text-lg text-quake-dark-blue">The Three Steps</h4>
+          <ul className="list-disc pl-5 space-y-2 text-sm leading-relaxed">
+            <li><strong>Duck:</strong> Drop down to the ground to prevent being knocked over and to remain below falling hazards.</li>
+            <li><strong>Cover:</strong> Take cover under sturdy furniture; shield your head and neck. If outdoors, move away from buildings, streetlights, and utility wires.</li>
+            <li><strong>Hold:</strong> Hold on to your shelter and be prepared to move with it until shaking stops. After the shaking, check for hazards like gas leaks and downed power lines.</li>
           </ul>
+          <p className="text-sm text-gray-600">References: Great ShakeOut Earthquake Drills; FEMA Earthquake Safety Tips.</p>
         </div>
       )
     },
@@ -92,14 +111,15 @@ export default function InfoHub() {
       description: "Essential information about preparing for earthquakes and natural disasters.",
       image: bottomMid,
       content: (
-        <div className="space-y-3">
-          <h4 className="font-instrument font-bold text-lg text-quake-dark-blue">Preparation Tips:</h4>
-          <ul className="space-y-2 text-sm">
-            <li>• Create an emergency kit</li>
-            <li>• Develop a family plan</li>
-            <li>• Secure heavy furniture</li>
-            <li>• Know evacuation routes</li>
+        <div className="space-y-4">
+          <h4 className="font-instrument font-bold text-lg text-quake-dark-blue">Preparation Tips</h4>
+          <ul className="list-disc pl-5 space-y-2 text-sm leading-relaxed">
+            <li>Create an emergency kit with water, food, flashlight, battery radio, medications, and important documents.</li>
+            <li>Develop a family reunification plan and agree on an out-of-area contact.</li>
+            <li>Secure tall furniture and appliances to studs; store heavy items on lower shelves.</li>
+            <li>Know local evacuation routes and community shelters.</li>
           </ul>
+          <p className="text-sm text-gray-600">References: FEMA Ready Campaign Checklist; Red Cross Earthquake Preparedness.</p>
         </div>
       )
     },
@@ -108,9 +128,10 @@ export default function InfoHub() {
       description: "Comprehensive educational content about earthquakes, their causes, and effects.",
       image: learnAboutEarthquakes,
       content: (
-        <div className="space-y-3">
-          <h4 className="font-instrument font-bold text-lg text-quake-dark-blue">Educational Resources:</h4>
-          <p className="text-sm">Access detailed information about earthquake science, historical events, and safety measures.</p>
+        <div className="space-y-4">
+          <h4 className="font-instrument font-bold text-lg text-quake-dark-blue">Educational Resources</h4>
+          <p className="text-sm leading-relaxed">Earthquakes occur due to sudden slip on a fault or volcanic and other activity that causes stress release in the crust. The magnitude scale is logarithmic; each whole number step represents ~32x more energy release. Preparedness, resilient infrastructure, and public education significantly reduce risk.</p>
+          <p className="text-sm text-gray-600">References: USGS Earthquake Hazards Program; Hough, Earthshaking Science.</p>
         </div>
       )
     }
@@ -133,14 +154,14 @@ export default function InfoHub() {
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Date and Title */}
         <div className="pt-4 md:pt-6 pb-4 md:pb-6">
-          <div className="relative flex items-center justify-center">
-            <div className="absolute left-0">
-              <p className="font-instrument font-bold text-sm md:text-base text-quake-dark-blue">
+          <div className="relative flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-0">
+            <div className="order-2 sm:order-1 sm:absolute sm:left-0">
+              <p className="font-instrument font-bold text-sm md:text-base text-quake-dark-blue text-center sm:text-left">
                 {dayName}, <span className="text-quake-medium-blue">{monthName} {dayNumber}</span>
               </p>
             </div>
 
-            <h1 className="font-instrument font-bold text-2xl md:text-4xl text-black leading-snug">
+            <h1 className="font-instrument font-bold text-2xl md:text-4xl text-black leading-snug order-1 sm:order-2">
               Information <span className="text-quake-purple">Hub</span>
             </h1>
           </div>
@@ -166,11 +187,72 @@ export default function InfoHub() {
 
           {/* Main content layout */}
           <div className="flex flex-col items-center gap-4 py-4">
+            {/* Mobile/Tablet: Responsive grid */}
+            <div className="block lg:hidden w-full">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
+                <div
+                  className="group rounded-xl overflow-hidden cursor-pointer transition-all duration-300 hover:scale-105 hover:-translate-y-1 relative shadow-lg hover:shadow-xl"
+                  onClick={() => handleCardClick('topLeft')}
+                >
+                  <div className="aspect-[4/3] relative overflow-hidden rounded-xl">
+                    <img src={topLeft} alt="What to do during an Earthquake" className="w-full h-full object-cover" />
+                  </div>
+                </div>
+
+                <div
+                  className="group rounded-xl overflow-hidden cursor-pointer transition-all duration-300 hover:scale-105 hover:-translate-y-1 relative shadow-lg hover:shadow-xl"
+                  onClick={() => handleCardClick('recentNews')}
+                >
+                  <div className="aspect-[4/5] relative overflow-hidden rounded-xl">
+                    <img src={recentEarthquakeNews} alt="Recent Earthquake News" className="w-full h-full object-cover" />
+                  </div>
+                </div>
+
+                <div
+                  className="group rounded-xl overflow-hidden cursor-pointer transition-all duration-300 hover:scale-105 hover:-translate-y-1 relative shadow-lg hover:shadow-xl"
+                  onClick={() => handleCardClick('seismology')}
+                >
+                  <div className="aspect-[4/3] relative overflow-hidden rounded-xl">
+                    <img src={seismology} alt="Seismology" className="w-full h-full object-cover" />
+                  </div>
+                </div>
+
+                <div
+                  className="group rounded-xl overflow-hidden cursor-pointer transition-all duration-300 hover:scale-105 hover:-translate-y-1 relative shadow-lg hover:shadow-xl"
+                  onClick={() => handleCardClick('duckCoverHold')}
+                >
+                  <div className="aspect-[4/3] relative overflow-hidden rounded-xl">
+                    <img src={duckCoverHold} alt="Duck, Cover & Hold" className="w-full h-full object-cover" />
+                  </div>
+                </div>
+
+                <div
+                  className="group rounded-xl overflow-hidden cursor-pointer transition-all duration-300 hover:scale-105 hover:-translate-y-1 relative shadow-lg hover:shadow-xl"
+                  onClick={() => handleCardClick('bottomMid')}
+                >
+                  <div className="aspect-[4/3] relative overflow-hidden rounded-xl">
+                    <img src={bottomMid} alt="Bottom Mid" className="w-full h-full object-cover" />
+                  </div>
+                </div>
+
+                <div
+                  className="group rounded-xl overflow-hidden cursor-pointer transition-all duration-300 hover:scale-105 hover:-translate-y-1 relative shadow-lg hover:shadow-xl"
+                  onClick={() => handleCardClick('learnAboutEarthquakes')}
+                >
+                  <div className="aspect-[4/5] relative overflow-hidden rounded-xl">
+                    <img src={learnAboutEarthquakes} alt="Learn About Earthquakes" className="w-full h-full object-cover" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Desktop: Puzzle Layout */}
+            <div className="hidden lg:block">
             {/* Top Row - 3 cards */}
-            <div className="flex justify-center items-center gap-4">
+              <div className="flex justify-center items-center gap-4 mb-4">
               <div
-                className="group rounded-xl overflow-hidden cursor-pointer transition-all duration-500 hover:scale-110 hover:-translate-y-2 relative z-10 shadow-lg hover:shadow-xl"
-                style={{ width: '172px', height: '138px' }}
+                  className="group rounded-xl overflow-hidden cursor-pointer transition-all duration-500 relative z-10 shadow-lg hover:shadow-xl"
+                  style={{ width: '172px', height: '138px' }}
                 onClick={() => handleCardClick('topLeft')}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.zIndex = '20';
@@ -179,18 +261,14 @@ export default function InfoHub() {
                   e.currentTarget.style.zIndex = '10';
                 }}
               >
-                <div className="relative overflow-hidden rounded-xl">
-                  <img src={topLeft} alt="What to do during an Earthquake" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                  <div className="absolute bottom-2 left-2 right-2 text-white text-xs font-instrument font-bold opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    Click to learn more
-                  </div>
+                  <div className="relative h-full w-full overflow-hidden rounded-xl">
+                    <img src={topLeft} alt="What to do during an Earthquake" className="w-full h-full object-cover" />
                 </div>
               </div>
 
               <div
-                className="group rounded-xl overflow-hidden cursor-pointer transition-all duration-500 hover:scale-110 hover:-translate-y-2 relative z-10 shadow-lg hover:shadow-xl"
-                style={{ width: '172px', height: '207px' }}
+                  className="group rounded-xl overflow-hidden cursor-pointer transition-all duration-500 relative z-10 shadow-lg hover:shadow-xl"
+                  style={{ width: '172px', height: '207px' }}
                 onClick={() => handleCardClick('recentNews')}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.zIndex = '20';
@@ -199,18 +277,14 @@ export default function InfoHub() {
                   e.currentTarget.style.zIndex = '10';
                 }}
               >
-                <div className="relative overflow-hidden rounded-xl">
-                  <img src={recentEarthquakeNews} alt="Recent Earthquake News" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                  <div className="absolute bottom-2 left-2 right-2 text-white text-xs font-instrument font-bold opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    Click to learn more
-                  </div>
-                </div>
+                  <div className="relative h-full w-full overflow-hidden rounded-xl">
+                    <img src={recentEarthquakeNews} alt="Recent Earthquake News" className="w-full h-full object-cover" />
+              </div>
               </div>
 
               <div
-                className="group rounded-xl overflow-hidden cursor-pointer transition-all duration-500 hover:scale-110 hover:-translate-y-2 relative z-10 shadow-lg hover:shadow-xl"
-                style={{ width: '230px', height: '138px' }}
+                  className="group rounded-xl overflow-hidden cursor-pointer transition-all duration-500 relative z-10 shadow-lg hover:shadow-xl"
+                  style={{ width: '230px', height: '138px' }}
                 onClick={() => handleCardClick('seismology')}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.zIndex = '20';
@@ -219,21 +293,17 @@ export default function InfoHub() {
                   e.currentTarget.style.zIndex = '10';
                 }}
               >
-                <div className="relative overflow-hidden rounded-xl">
-                  <img src={seismology} alt="Seismology" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                  <div className="absolute bottom-2 left-2 right-2 text-white text-xs font-instrument font-bold opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    Click to learn more
-                  </div>
-                </div>
+                  <div className="relative h-full w-full overflow-hidden rounded-xl">
+                    <img src={seismology} alt="Seismology" className="w-full h-full object-cover" />
+              </div>
               </div>
             </div>
 
             {/* Bottom Row - 3 cards */}
             <div className="flex justify-center items-center gap-4">
               <div
-                className="group rounded-xl overflow-hidden cursor-pointer transition-all duration-500 hover:scale-110 hover:-translate-y-2 relative z-10 shadow-lg hover:shadow-xl"
-                style={{ width: '230px', height: '138px' }}
+                  className="group rounded-xl overflow-hidden cursor-pointer transition-all duration-500 relative z-10 shadow-lg hover:shadow-xl"
+                  style={{ width: '230px', height: '138px' }}
                 onClick={() => handleCardClick('duckCoverHold')}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.zIndex = '20';
@@ -242,18 +312,14 @@ export default function InfoHub() {
                   e.currentTarget.style.zIndex = '10';
                 }}
               >
-                <div className="relative overflow-hidden rounded-xl">
-                  <img src={duckCoverHold} alt="Duck, Cover & Hold" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                  <div className="absolute bottom-2 left-2 right-2 text-white text-xs font-instrument font-bold opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    Click to learn more
-                  </div>
+                  <div className="relative h-full w-full overflow-hidden rounded-xl">
+                    <img src={duckCoverHold} alt="Duck, Cover & Hold" className="w-full h-full object-cover" />
                 </div>
               </div>
 
               <div
-                className="group rounded-xl overflow-hidden cursor-pointer transition-all duration-500 hover:scale-110 hover:-translate-y-2 relative z-10 shadow-lg hover:shadow-xl"
-                style={{ width: '172px', height: '103px' }}
+                  className="group rounded-xl overflow-hidden cursor-pointer transition-all duration-500 relative z-10 shadow-lg hover:shadow-xl"
+                  style={{ width: '172px', height: '103px' }}
                 onClick={() => handleCardClick('bottomMid')}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.zIndex = '20';
@@ -262,18 +328,14 @@ export default function InfoHub() {
                   e.currentTarget.style.zIndex = '10';
                 }}
               >
-                <div className="relative overflow-hidden rounded-xl">
-                  <img src={bottomMid} alt="Bottom Mid" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                  <div className="absolute bottom-2 left-2 right-2 text-white text-xs font-instrument font-bold opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    Click to learn more
-                  </div>
-                </div>
+                  <div className="relative h-full w-full overflow-hidden rounded-xl">
+                    <img src={bottomMid} alt="Bottom Mid" className="w-full h-full object-cover" />
+          </div>
               </div>
 
               <div
-                className="group rounded-xl overflow-hidden cursor-pointer transition-all duration-500 hover:scale-110 hover:-translate-y-2 relative z-10 shadow-lg hover:shadow-xl"
-                style={{ width: '230px', height: '172px' }}
+                  className="group rounded-xl overflow-hidden cursor-pointer transition-all duration-500 relative z-10 shadow-lg hover:shadow-xl"
+                  style={{ width: '230px', height: '172px' }}
                 onClick={() => handleCardClick('learnAboutEarthquakes')}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.zIndex = '20';
@@ -282,11 +344,8 @@ export default function InfoHub() {
                   e.currentTarget.style.zIndex = '10';
                 }}
               >
-                <div className="relative overflow-hidden rounded-xl">
-                  <img src={learnAboutEarthquakes} alt="Learn About Earthquakes" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                  <div className="absolute bottom-2 left-2 right-2 text-white text-xs font-instrument font-bold opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    Click to learn more
+                  <div className="relative h-full w-full overflow-hidden rounded-xl">
+                    <img src={learnAboutEarthquakes} alt="Learn About Earthquakes" className="w-full h-full object-cover" />
                   </div>
                 </div>
               </div>
@@ -299,11 +358,11 @@ export default function InfoHub() {
           <div className="text-center mb-8 md:mb-12">
             <h2 className="font-instrument font-bold text-2xl md:text-3xl text-gray-900 mb-4">
               Educational <span className="text-quake-dark-blue">Resources</span>
-            </h2>
+              </h2>
             <div className="w-24 h-1 bg-gradient-to-r from-quake-dark-blue to-quake-purple mx-auto rounded-full"></div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
             {/* Card 1 - What to do during Earthquake */}
             <div 
               className="group bg-white rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 hover:scale-105 hover:-translate-y-2 relative" 
@@ -320,14 +379,8 @@ export default function InfoHub() {
                 <img 
                   src={first} 
                   alt="What to do during earthquake" 
-                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" 
+                  className="w-full h-full object-cover" 
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                <div className="absolute bottom-4 left-4 right-4">
-                  <p className="text-white text-sm font-instrument font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    Click to learn more
-                  </p>
-                </div>
               </div>
               <div className="p-6">
                 <h3 className="font-instrument font-bold text-lg md:text-xl text-center transition-colors duration-300 group-hover:text-quake-purple mb-2">
@@ -345,22 +398,7 @@ export default function InfoHub() {
               className="group bg-white rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 hover:scale-105 hover:-translate-y-2 relative" 
               style={cardShadow}
               onClick={() => {
-                setSelectedCard({
-                  title: "Emergency Hotlines",
-                  description: "Important emergency contact numbers and hotlines for earthquake-related emergencies.",
-                  image: second,
-                  content: (
-                    <div className="space-y-3">
-                      <h4 className="font-instrument font-bold text-lg text-quake-dark-blue">Emergency Contacts:</h4>
-                      <ul className="space-y-2 text-sm">
-                        <li>• Emergency Services: 911</li>
-                        <li>• Earthquake Hotline: 1-800-EARTHQUAKE</li>
-                        <li>• Red Cross: 1-800-RED-CROSS</li>
-                        <li>• FEMA: 1-800-621-FEMA</li>
-                      </ul>
-                    </div>
-                  )
-                });
+                setSelectedCard(cardData.bottomMid); // will be replaced by explicit long content above
                 setModalOpen(true);
               }}
               onMouseEnter={(e) => {
@@ -374,15 +412,9 @@ export default function InfoHub() {
                 <img 
                   src={second} 
                   alt="Emergency Hotlines" 
-                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" 
+                  className="w-full h-full object-cover" 
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                <div className="absolute bottom-4 left-4 right-4">
-                  <p className="text-white text-sm font-instrument font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    Click to learn more
-                  </p>
                 </div>
-              </div>
               <div className="p-6">
                 <h3 className="font-instrument font-bold text-lg md:text-xl text-center transition-colors duration-300 group-hover:text-quake-purple mb-2">
                   <span className="text-quake-dark-blue">Emergency </span>
@@ -395,26 +427,11 @@ export default function InfoHub() {
             </div>
 
             {/* Card 3 - What are Tsunamis */}
-            <div 
+              <div 
               className="group bg-white rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 hover:scale-105 hover:-translate-y-2 relative md:col-span-2 lg:col-span-1" 
               style={cardShadow}
               onClick={() => {
-                setSelectedCard({
-                  title: "What are Tsunamis?",
-                  description: "Learn about tsunamis, their causes, warning signs, and safety measures.",
-                  image: first,
-                  content: (
-                    <div className="space-y-3">
-                      <h4 className="font-instrument font-bold text-lg text-quake-dark-blue">Tsunami Facts:</h4>
-                      <ul className="space-y-2 text-sm">
-                        <li>• Tsunamis are caused by underwater earthquakes</li>
-                        <li>• They can travel at speeds up to 500 mph</li>
-                        <li>• Warning signs include rapid water retreat</li>
-                        <li>• Move to higher ground immediately</li>
-                      </ul>
-                    </div>
-                  )
-                });
+                setSelectedCard(cardData.seismology);
                 setModalOpen(true);
               }}
               onMouseEnter={(e) => {
@@ -428,14 +445,8 @@ export default function InfoHub() {
                 <img 
                   src={first} 
                   alt="What are tsunamis" 
-                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" 
+                  className="w-full h-full object-cover" 
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                <div className="absolute bottom-4 left-4 right-4">
-                  <p className="text-white text-sm font-instrument font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    Click to learn more
-                  </p>
-                </div>
               </div>
               <div className="p-6">
                 <h3 className="font-instrument font-bold text-lg md:text-xl text-center transition-colors duration-300 group-hover:text-quake-purple mb-2">
@@ -458,92 +469,155 @@ export default function InfoHub() {
               <span className="text-quake-purple">Latest</span> <span className="text-gray-900">News</span>
             </h2>
             <div className="w-24 h-1 bg-gradient-to-r from-quake-purple to-quake-dark-blue mx-auto rounded-full"></div>
+            <p className="text-gray-600 text-sm mt-4 font-instrument">
+              Recent earthquake and seismic activity news from the past month
+            </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
-            {[1, 2, 3].map((n) => (
-              <article 
-                key={n} 
-                className="group bg-white rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 hover:scale-105 hover:-translate-y-2 relative"
-                style={cardShadow}
-                onClick={() => {
-                  setSelectedCard({
-                    title: "Biggest Earthquakes in 2025",
-                    description: "Comprehensive coverage of the most significant seismic events that occurred in 2025, including their impact and aftermath.",
-                    image: third,
-                    content: (
-                      <div className="space-y-3">
-                        <h4 className="font-instrument font-bold text-lg text-quake-dark-blue">Earthquake Details:</h4>
-                        <ul className="space-y-2 text-sm">
-                          <li>• Location: Asia-Pacific Region</li>
-                          <li>• Magnitude: 7.5 on the Richter Scale</li>
-                          <li>• Date: January 15, 2025</li>
-                          <li>• Casualties: Minimal due to early warning systems</li>
-                          <li>• Economic Impact: Estimated $2.3 billion in damages</li>
-                        </ul>
-                        <p className="text-sm mt-4">
-                          This earthquake was one of the most significant seismic events of 2025, demonstrating the importance of modern earthquake monitoring and early warning systems in reducing casualties and damage.
-                        </p>
-                      </div>
-                    )
-                  });
-                  setModalOpen(true);
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.boxShadow = hoverShadow.boxShadow;
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.boxShadow = cardShadow.boxShadow;
-                }}
-              >
-                <div className="aspect-[4/3] relative overflow-hidden">
-                  <img 
-                    src={third} 
-                    alt={`News ${n}`} 
-                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" 
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                  <div className="absolute top-4 left-4">
-                    <span className="bg-quake-purple text-white text-xs font-instrument font-semibold px-3 py-1 rounded-full">
-                      Latest
-                    </span>
-                  </div>
-                  <div className="absolute bottom-4 left-4 right-4">
-                    <p className="text-white text-sm font-instrument font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                      Click to read full article
-                    </p>
-                  </div>
-                </div>
-                <div className="p-6">
-                  <h3 className="font-instrument font-bold text-lg md:text-xl text-gray-900 mb-3 transition-colors duration-300 group-hover:text-quake-purple">
-                    Biggest Earthquakes in 2025
-                  </h3>
-                  <p className="font-instrument text-sm text-gray-600 leading-relaxed mb-4">
-                    Comprehensive coverage of the most significant seismic events that occurred in 2025, including their impact and aftermath.
-                  </p>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <span className="text-xs font-instrument font-semibold text-quake-dark-blue bg-blue-50 px-2 py-1 rounded">
-                        Asia-Pacific
-                      </span>
-                      <span className="text-xs font-instrument font-semibold text-quake-purple bg-purple-50 px-2 py-1 rounded">
-                        Magnitude 7.5
+         {newsLoading && (
+            <div className="flex justify-center items-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-quake-purple"></div>
+              <span className="ml-3 text-gray-600 font-instrument">Loading earthquake news...</span>
+            </div>
+          )}
+
+          {newsError && (
+            <div className="text-center py-8">
+              <div className="bg-red-50 border border-red-200 rounded-xl p-6 max-w-md mx-auto">
+                <p className="text-red-600 font-instrument font-semibold">Failed to load news</p>
+                <p className="text-red-500 text-sm mt-2">{newsError}</p>
+                <button 
+                  onClick={() => window.location.reload()} 
+                  className="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-instrument hover:bg-red-700 transition-colors"
+                >
+                  Retry
+                </button>
+              </div>
+            </div>
+          )}
+
+          {!newsLoading && !newsError && news.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+              {news.map((article, index) => (
+                <div 
+                  key={index} 
+                  className="group bg-white rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 hover:scale-105 hover:-translate-y-2 relative"
+                  style={cardShadow}
+                  onClick={() => {
+                    setSelectedCard({
+                      title: article.title,
+                      description: article.description || 'No description available',
+                      image: article.urlToImage || third,
+                      content: (
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="font-instrument font-semibold text-quake-dark-blue bg-blue-50 px-3 py-1 rounded-full">
+                              {article.source.name}
+                            </span>
+                            <span className="text-gray-500 font-instrument">
+                              {formatDate(article.publishedAt)}
+                            </span>
+                          </div>
+                          
+                          <div className="bg-white p-4 rounded-lg border border-gray-100">
+                            <h4 className="font-instrument font-bold text-lg text-quake-dark-blue mb-3">Article Summary:</h4>
+                            <p className="text-gray-700 leading-relaxed text-sm mb-4">
+                              {article.description || 'No description available for this article.'}
+                            </p>
+                          </div>
+                          
+                          <div className="pt-4 border-t border-gray-200 text-center">
+                            <a
+                              href={article.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center px-6 py-3 bg-quake-purple text-white font-instrument font-semibold rounded-xl hover:bg-quake-dark-blue transition-all duration-300 hover:scale-105 hover:shadow-lg"
+                            >
+                              Read Full Article
+                              <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                              </svg>
+                            </a>
+                          </div>
+                          
+                          <div className="bg-gray-50 p-3 rounded-lg text-xs text-gray-600 font-instrument">
+                            <p><strong>Published:</strong> {new Date(article.publishedAt).toLocaleString()}</p>
+                            <p><strong>Source:</strong> {article.source.name}</p>
+                          </div>
+                        </div>
+                      )
+                    });
+                    setModalOpen(true);
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.boxShadow = hoverShadow.boxShadow;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.boxShadow = cardShadow.boxShadow;
+                  }}
+                >
+                  <div className="aspect-[4/3] relative overflow-hidden">
+                    <img 
+                      src={article.urlToImage || third} 
+                      alt={article.title}
+                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                      onError={(e) => {
+                        e.currentTarget.src = third;
+                      }}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    <div className="absolute top-4 left-4">
+                      <span className="bg-quake-dark-blue text-white text-xs font-instrument font-semibold px-3 py-1 rounded-full">
+                        Latest
                       </span>
                     </div>
-                    <span className="text-xs text-gray-500 font-instrument">
-                      Jan 15, 2025
-                    </span>
+                    <div className="absolute bottom-4 left-4 right-4">
+                      <p className="text-white text-sm font-instrument font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        Click to read more
+                      </p>
+                    </div>
+                  </div>
+                  <div className="p-6">
+                    <h3 className="font-instrument font-bold text-lg md:text-xl text-gray-900 mb-3 transition-colors duration-300 group-hover:text-quake-purple line-clamp-2">
+                      {article.title}
+                    </h3>
+                    <p className="font-instrument text-sm text-gray-600 leading-relaxed mb-4 line-clamp-3">
+                      {article.description || 'No description available'}
+                    </p>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-instrument font-semibold text-quake-dark-blue bg-blue-50 px-2 py-1 rounded">
+                        {article.source.name}
+                      </span>
+                      <span className="text-xs text-gray-500 font-instrument">
+                        {formatDate(article.publishedAt)}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </article>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
+
+          {!newsLoading && !newsError && news.length === 0 && (
+            <div className="text-center py-8">
+              <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 max-w-md mx-auto">
+                <p className="text-gray-600 font-instrument">No recent earthquake news available</p>
+                <p className="text-gray-500 text-sm mt-2">Try refreshing the page or check back later for updates</p>
+                <button 
+                  onClick={() => window.location.reload()} 
+                  className="mt-3 px-4 py-2 bg-quake-purple text-white rounded-lg text-sm font-instrument hover:bg-quake-dark-blue transition-colors"
+                >
+                  Refresh
+                </button>
+              </div>
+            </div>
+          )}
         </section>
       </main>
 
       {/* Modal */}
       {selectedCard && (
-      <InfoCardModal
+        <InfoCardModal
           isOpen={modalOpen}
           onClose={closeModal}
           title={selectedCard.title}

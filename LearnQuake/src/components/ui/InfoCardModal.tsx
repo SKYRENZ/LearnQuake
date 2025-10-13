@@ -27,6 +27,33 @@ const InfoCardModal: React.FC<InfoCardModalProps> = ({
   image,
   content,
 }) => {
+  const handleShare = async () => {
+    const shareTitle = title || 'LEARNQUAKE';
+    const shareText = description || 'Learn earthquake safety with LEARNQUAKE.';
+    const shareUrl = window.location.href;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: shareTitle, text: shareText, url: shareUrl });
+        return;
+      }
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(`${shareTitle} - ${shareText} ${shareUrl}`);
+        alert('Link copied to clipboard!');
+        return;
+      }
+      const textarea = document.createElement('textarea');
+      textarea.value = `${shareTitle} - ${shareText} ${shareUrl}`;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+      alert('Link copied to clipboard!');
+    } catch (e) {
+      const mailto = `mailto:?subject=${encodeURIComponent(shareTitle)}&body=${encodeURIComponent(`${shareText} ${shareUrl}`)}`;
+      window.location.href = mailto;
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogPortal>
@@ -68,10 +95,7 @@ const InfoCardModal: React.FC<InfoCardModalProps> = ({
               Close
             </button>
             <button
-              onClick={() => {
-                // Add share functionality or additional actions
-                navigator.clipboard.writeText(title + ' - ' + description);
-              }}
+              onClick={handleShare}
               className="px-6 sm:px-8 py-2 sm:py-3 bg-gray-200 text-gray-700 font-instrument font-semibold rounded-xl hover:bg-gray-300 transition-all duration-300 hover:scale-105 hover:shadow-lg text-sm sm:text-base"
             >
               Share
