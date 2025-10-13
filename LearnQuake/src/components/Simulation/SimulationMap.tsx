@@ -1,14 +1,16 @@
 import {
-  Dispatch,
-  FormEvent,
-  MutableRefObject,
-  SetStateAction,
   forwardRef,
   useCallback,
   useEffect,
   useImperativeHandle,
   useRef,
   useState,
+} from 'react';
+import type {
+  Dispatch,
+  FormEvent,
+  MutableRefObject,
+  SetStateAction,
 } from 'react';
 import 'ol/ol.css';
 import Map from 'ol/Map';
@@ -25,10 +27,9 @@ import Stroke from 'ol/style/Stroke';
 import Feature from 'ol/Feature';
 import Point from 'ol/geom/Point';
 import Polygon, { circular as polygonCircular } from 'ol/geom/Polygon';
+import type Geometry from 'ol/geom/Geometry';
 import Overlay from 'ol/Overlay';
 import { fromLonLat, toLonLat } from 'ol/proj';
-import type { FeatureLike } from 'ol/Feature';
-import { unByKey } from 'ol/Observable';
 import type MapBrowserEvent from 'ol/MapBrowserEvent';
 import SimulationSearchPanel from './SimulationSearchPanel';
 import type { NominatimResult, SelectedSimulationEvent } from './types';
@@ -36,6 +37,13 @@ import type {
   SimulationAnalysis,
   SimulationMeta,
 } from '../../hooks/useSimulationAnalysis';
+import {
+  addPointerMoveListener,
+  addSingleClickListener,
+  findVectorFeatureAtPixel,
+  removeMapEventListener,
+} from '../../utils/openlayers';
+import MapBrowserEventType from 'ol/MapBrowserEventType';
 
 interface SimulationMapProps {
   simPlace: string;
@@ -55,7 +63,7 @@ interface SimulationMapProps {
     magnitude: number,
     radiusKm: number,
   ) => Promise<void>;
-  hoveredSimFeatureRef: MutableRefObject<FeatureLike | null>;
+  hoveredSimFeatureRef: MutableRefObject<Feature<Geometry> | null>;
 }
 
 export interface SimulationMapHandle {
@@ -164,7 +172,7 @@ const SimulationMap = forwardRef<SimulationMapHandle, SimulationMapProps>(
       [setSimPlace],
     );
 
-    const renderAnalysisPopup = useCallback((feature: FeatureLike) => {
+    const renderAnalysisPopup = useCallback((feature: Feature<Geometry>) => {
       const container = popupContainerRef.current;
       if (!container) return;
 
@@ -312,7 +320,8 @@ const SimulationMap = forwardRef<SimulationMapHandle, SimulationMapProps>(
       map.addLayer(
         new VectorLayer({
           source: quakeSource,
-          style: (feature: FeatureLike) => {
+          style: featureLike => {
+            const feature = featureLike as Feature<Geometry>;
             const mag = (feature.get('mag') as number) || 0;
             const radius = 4 + mag * 2;
             let color = '#4ade80';
@@ -351,7 +360,8 @@ const SimulationMap = forwardRef<SimulationMapHandle, SimulationMapProps>(
       map.addLayer(
         new VectorLayer({
           source: simSource,
-          style: (feature, resolution) => {
+          style: (featureLike, resolution) => {
+            const feature = featureLike as Feature<Geometry>;
             if (feature.get('coverage')) {
               const polygon = feature.getGeometry() as Polygon;
               const center =
@@ -384,7 +394,6 @@ const SimulationMap = forwardRef<SimulationMapHandle, SimulationMapProps>(
                 }),
               ];
             }
-
             const magnitude = feature.get('mag') as number | undefined;
             const markerRadius = 6 + (magnitude ? magnitude * 2 : 0);
             return new Style({
@@ -452,45 +461,56 @@ const SimulationMap = forwardRef<SimulationMapHandle, SimulationMapProps>(
       const map = mapRef.current;
       if (!map) return;
 
-      const handleClick = (event: MapBrowserEvent<PointerEvent>) => {
+      const handleClick = (event: MapBrowserEvent<UIEvent>) => {
+        const pointerEvent = event as MapBrowserEvent<PointerEvent>;
         if (pickingSimLocation) {
-          simCoordRef.current = event.coordinate as [number, number];
-          reverseGeocode(event.coordinate as [number, number]);
+          simCoordRef.current = pointerEvent.coordinate as [number, number];
+          reverseGeocode(pointerEvent.coordinate as [number, number]);
           refreshSimPreview();
           setPickingSimLocation(false);
           return;
         }
 
-        let found = false;
-        map.forEachFeatureAtPixel(event.pixel, feature => {
-          const props = feature.getProperties() as EarthquakeProperties;
-          if (
-            props.mag !== undefined &&
-            !feature.get('coverage') &&
-            !feature.get('temp')
-          ) {
-            setSelected({
-              place: props.place,
-              mag: props.mag,
-              time: props.time,
-              url: props.url,
-            });
-            found = true;
-            return true;
-          }
-          return false;
-        });
+        const quakeFeature = findVectorFeatureAtPixel(
+          map,
+          pointerEvent.pixel,
+          feature => {
+            const props = feature.getProperties() as EarthquakeProperties;
+            return (
+              props.mag !== undefined &&
+              !feature.get('coverage') &&
+              !feature.get('temp')
+            );
+          },
+        );
 
-        if (!found) {
+        if (quakeFeature) {
+          const props = quakeFeature.getProperties() as EarthquakeProperties;
+          setSelected({
+            place: props.place,
+            mag: props.mag,
+            time: props.time,
+            url: props.url,
+          });
+        } else {
           setSelected(null);
         }
       };
 
-      const key = map.on('singleclick', handleClick);
+      const key = map.on(
+        MapBrowserEventType.SINGLECLICK,
+        handleClick as unknown as (event: MapBrowserEvent<unknown>) => void,
+      );
       return () => {
-        unByKey(key);
+        removeMapEventListener(key);
       };
-    }, [pickingSimLocation, refreshSimPreview, reverseGeocode, setPickingSimLocation, setSelected]);
+    }, [
+      pickingSimLocation,
+      refreshSimPreview,
+      reverseGeocode,
+      setPickingSimLocation,
+      setSelected,
+    ]);
 
     useEffect(() => {
       if (!simCoordRef.current) return;
@@ -505,36 +525,34 @@ const SimulationMap = forwardRef<SimulationMapHandle, SimulationMapProps>(
       const container = popupContainerRef.current;
       if (!map || !overlay || !container) return;
 
-      const handleMove = (event: MapBrowserEvent<PointerEvent>) => {
-        let targetFeature: FeatureLike | null = null;
-        map.forEachFeatureAtPixel(event.pixel, feature => {
-          if (feature.get('coverage')) {
-            targetFeature = feature;
-            return true;
-          }
-          return false;
-        });
+      const handleMove = (event: MapBrowserEvent<UIEvent>) => {
+        const pointerEvent = event as MapBrowserEvent<PointerEvent>;
+        const simFeature = findVectorFeatureAtPixel(
+          map,
+          pointerEvent.pixel,
+          feature => Boolean(feature.get('coverage')),
+        );
 
         const targetElement = map.getTargetElement();
 
-        if (targetFeature) {
-          hoveredSimFeatureRef.current = targetFeature;
-          const radiusMeters = targetFeature.get('radius') as number | undefined;
+        if (simFeature) {
+          hoveredSimFeatureRef.current = simFeature;
+          const radiusMeters = simFeature.get('radius') as number | undefined;
           setHoveredSimMeta({
             place:
-              (targetFeature.get('place') as string | undefined) ??
+              (simFeature.get('place') as string | undefined) ??
               'Simulated Event',
-            magnitude: targetFeature.get('mag') as number | undefined,
+            magnitude: simFeature.get('mag') as number | undefined,
             radiusKm: radiusMeters ? radiusMeters / 1000 : undefined,
-            pending: targetFeature.get('analysisPending') as boolean | undefined,
+            pending: simFeature.get('analysisPending') as boolean | undefined,
             error:
-              (targetFeature.get('analysisError') as string | undefined) ?? null,
+              (simFeature.get('analysisError') as string | undefined) ?? null,
           });
           setHoveredSimAnalysis(
-            (targetFeature.get('analysis') as SimulationAnalysis | null) ?? null,
+            (simFeature.get('analysis') as SimulationAnalysis | null) ?? null,
           );
-          renderAnalysisPopup(targetFeature);
-          overlay.setPosition(event.coordinate);
+          renderAnalysisPopup(simFeature);
+          overlay.setPosition(pointerEvent.coordinate);
           container.classList.remove('hidden');
           if (targetElement) targetElement.style.cursor = 'pointer';
         } else {
@@ -547,6 +565,11 @@ const SimulationMap = forwardRef<SimulationMapHandle, SimulationMapProps>(
         }
       };
 
+      const moveKey = map.on(
+        MapBrowserEventType.POINTERMOVE,
+        handleMove as unknown as (event: MapBrowserEvent<unknown>) => void,
+      );
+
       const handleLeave = () => {
         overlay.setPosition(undefined);
         container.classList.add('hidden');
@@ -557,12 +580,11 @@ const SimulationMap = forwardRef<SimulationMapHandle, SimulationMapProps>(
         setHoveredSimAnalysis(null);
       };
 
-      map.on('pointermove', handleMove);
       const viewport = map.getViewport();
       viewport.addEventListener('mouseleave', handleLeave);
 
       return () => {
-        map.un('pointermove', handleMove);
+        removeMapEventListener(moveKey);
         viewport.removeEventListener('mouseleave', handleLeave);
       };
     }, [

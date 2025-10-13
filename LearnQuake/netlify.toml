@@ -1,17 +1,17 @@
 [build]
   command = "npm run build"
   publish = "dist"
-  functions = "netlify/functions"
 
 [functions]
+  directory = "netlify/functions"
   node_bundler = "esbuild"
-  external_node_modules = ["axios"]
-
-[dev]
-  command = "npm run dev"
-  framework = "vite"
 
 [[redirects]]
-  from = "/*"
-  to = "/index.html"
+  from = "/map/*"
+  to = "/.netlify/functions/map"
+  status = 200
+
+[[redirects]]
+  from = "/api/earthquakes/*"
+  to = "/.netlify/functions/earthquakes"
   status = 200

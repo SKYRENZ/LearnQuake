@@ -1,4 +1,5 @@
-import { Dispatch, SetStateAction, FormEvent } from 'react';
+import type { FormEvent } from 'react';
+import type { Dispatch, SetStateAction } from 'react';
 import type { NominatimResult } from './types';
 
 interface SimulationSearchPanelProps {
