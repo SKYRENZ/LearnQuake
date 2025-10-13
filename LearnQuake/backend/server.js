@@ -6,6 +6,7 @@ import { dirname, join } from 'path';
 import earthquakeRoutes from './routes/earthquakeRoutes.js';
 import mapRoutes from './routes/mapRoutes.js';
 import { generateMapAnalysis } from './services/mapAnalysisService.js';
+import newsRoutes from './routes/newsRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -23,6 +24,7 @@ app.use(express.json());
 // Routes
 app.use('/api/earthquakes', earthquakeRoutes);
 app.use('/map', mapRoutes);
+app.use('/api/news', newsRoutes);
 
 // check lang rin if gumagana yung server
 app.listen(port, () => {
