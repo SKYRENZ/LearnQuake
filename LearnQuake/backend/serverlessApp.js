@@ -6,6 +6,7 @@ import earthquakeRoutes from './routes/earthquakeRoutes.js';
 import mapRoutes from './routes/mapRoutes.js';
 import footageRoutes from './routes/footageRoutes.js';
 import newsRoutes from './routes/newsRoutes.js';
+import { generateMapAnalysis } from './services/mapAnalysisService.js';
 
 const app = express();
 
@@ -26,23 +27,32 @@ const healthCheck = (req, res) => {
   });
 };
 
-// Mount routes directly on app (Netlify strips the function path)
+// Handle root POST for map analysis (when called as /.netlify/functions/map)
+app.post('/', async (req, res) => {
+  const { place, magnitude, areaCoverage, coordinates } = req.body;
+  
+  if (!place || magnitude === undefined || !areaCoverage || !coordinates) {
+    return res.status(400).json({
+      success: false,
+      error: 'Missing required fields: place, magnitude, areaCoverage, coordinates',
+    });
+  }
+
+  try {
+    const analysis = await generateMapAnalysis({ place, magnitude, areaCoverage, coordinates });
+    res.json({ success: true, analysis });
+  } catch (error) {
+    console.error('Map analysis error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Mount routes
 app.get('/', healthCheck);
 app.use('/api/earthquakes', earthquakeRoutes);
 app.use('/map', mapRoutes);
 app.use('/api/footage', footageRoutes);
 app.use('/api/news', newsRoutes);
-
-// Also handle root path for the map function specifically
-app.post('/', async (req, res, next) => {
-  // If POST to root of this function, treat it as /map
-  const { place, magnitude, areaCoverage, coordinates } = req.body;
-  if (place && magnitude !== undefined) {
-    req.url = '/map';
-    return mapRoutes(req, res, next);
-  }
-  next();
-});
 
 // Export for Netlify Functions
 export { app };
