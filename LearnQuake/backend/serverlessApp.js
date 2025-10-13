@@ -8,7 +8,6 @@ import footageRoutes from './routes/footageRoutes.js';
 import newsRoutes from './routes/newsRoutes.js';
 
 const app = express();
-const router = express.Router();
 
 // Middleware
 app.use(cors());
@@ -27,17 +26,23 @@ const healthCheck = (req, res) => {
   });
 };
 
+// Mount routes directly on app (Netlify strips the function path)
 app.get('/', healthCheck);
-app.get('/.netlify/functions/map', healthCheck);
+app.use('/api/earthquakes', earthquakeRoutes);
+app.use('/map', mapRoutes);
+app.use('/api/footage', footageRoutes);
+app.use('/api/news', newsRoutes);
 
-// Routes - adjusted for Netlify Functions base path
-router.use('/api/earthquakes', earthquakeRoutes);
-router.use('/map', mapRoutes);
-router.use('/api/footage', footageRoutes);
-router.use('/api/news', newsRoutes);
-
-app.use('/.netlify/functions/map', router);
-app.use('/', router);
+// Also handle root path for the map function specifically
+app.post('/', async (req, res, next) => {
+  // If POST to root of this function, treat it as /map
+  const { place, magnitude, areaCoverage, coordinates } = req.body;
+  if (place && magnitude !== undefined) {
+    req.url = '/map';
+    return mapRoutes(req, res, next);
+  }
+  next();
+});
 
 // Export for Netlify Functions
 export { app };
