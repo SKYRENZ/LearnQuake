@@ -10,6 +10,8 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use('/api/earthquakes', earthquakeRoutes);
+// allow both local "/map" and Netlify "/.netlify/functions/map"
 app.use('/map', mapRoutes);
+app.use('/.netlify/functions/map', mapRoutes);
 
 export default app;
