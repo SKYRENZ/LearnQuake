@@ -12,7 +12,15 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 // Load .env from parent directory
-dotenv.config({ path: join(__dirname, '..', '.env') });
+const envPath = join(__dirname, '..', '.env');
+console.log('Loading .env from:', envPath);
+dotenv.config({ path: envPath });
+
+// Debug environment variables
+console.log('Environment variables loaded:');
+console.log('NEWS_API_KEY exists:', !!process.env.NEWS_API_KEY);
+console.log('NEWS_API_KEY value:', process.env.NEWS_API_KEY?.substring(0, 8) + '...');
+console.log('All env vars with NEWS:', Object.keys(process.env).filter(key => key.includes('NEWS')));
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -32,6 +40,7 @@ app.listen(port, () => {
   console.log(
     `Search earthquakes at: http://localhost:${port}/api/earthquakes/search?location=California`,
   );
+  console.log('Final NEWS_API_KEY check:', !!process.env.NEWS_API_KEY);
 });
 
 function jsonResponse(statusCode, payload) {
