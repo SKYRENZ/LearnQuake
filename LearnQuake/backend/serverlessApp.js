@@ -9,6 +9,7 @@ import newsRoutes from './routes/newsRoutes.js';
 import { generateMapAnalysis } from './services/mapAnalysisService.js';
 
 const app = express();
+const NETLIFY_BASE = '/.netlify/functions/map';
 
 // Middleware
 app.use(cors());
@@ -20,8 +21,14 @@ app.use((req, res, next) => {
   next();
 });
 
-// Handle root POST for map analysis FIRST (when called as /.netlify/functions/map)
-app.post('/', async (req, res) => {
+function registerRoutes(base = '') {
+  app.use(`${base}/api/earthquakes`, earthquakeRoutes);
+  app.use(`${base}/api/footage`, footageRoutes);
+  app.use(`${base}/api/news`, newsRoutes);
+  app.use(`${base}/map`, mapRoutes);
+}
+
+async function handleMapAnalysis(req, res) {
   console.log('POST / handler hit');
   const { place, magnitude, areaCoverage, coordinates } = req.body;
   
@@ -39,9 +46,11 @@ app.post('/', async (req, res) => {
     console.error('Map analysis error:', error);
     return res.status(500).json({ success: false, error: error.message });
   }
-});
+}
 
-// Health check GET AFTER POST
+app.post('/', handleMapAnalysis);
+app.post(NETLIFY_BASE, handleMapAnalysis);
+
 app.get('/', (req, res) => {
   res.json({
     message: 'LearnQuake API is running on Netlify',
@@ -53,12 +62,20 @@ app.get('/', (req, res) => {
     },
   });
 });
+app.get(NETLIFY_BASE, (req, res) => {
+  res.json({
+    message: 'LearnQuake API is running on Netlify',
+    endpoints: {
+      earthquakes: '/api/earthquakes',
+      map: '/map',
+      footage: '/api/footage',
+      news: '/api/news',
+    },
+  });
+});
 
-// Mount other routes
-app.use('/api/earthquakes', earthquakeRoutes);
-app.use('/map', mapRoutes);
-app.use('/api/footage', footageRoutes);
-app.use('/api/news', newsRoutes);
+registerRoutes();
+registerRoutes(NETLIFY_BASE);
 
 // Export for Netlify Functions
 export { app };
