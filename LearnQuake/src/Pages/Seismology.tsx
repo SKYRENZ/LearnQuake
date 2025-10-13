@@ -144,7 +144,6 @@ export default function Seismology() {
                           </div>
                         )}
                       </div>
-                      <div className="text-[10px] sm:text-xs text-gray-500 ml-2">🌍</div>
                     </div>
                   </div>
                 )}
@@ -206,7 +205,7 @@ export default function Seismology() {
                     </span>
                     {selectedEarthquake && (
                       <span className="text-blue-600 font-medium truncate">
-                        📊 Displaying: {selectedEarthquake.place}
+                        Displaying: {selectedEarthquake.place}
                       </span>
                     )}
                   </div>
@@ -412,10 +411,10 @@ export default function Seismology() {
                 </div>
               </div>
               
-              {/* Graph info */}
-              <div className="mt-3 text-[10px] sm:text-xs text-gray-500">
+              {/* Graph info - FIXED spacing */}
+              <div className="mt-4 text-[10px] sm:text-xs text-gray-500">
                 {selectedEarthquake ? (
-                  <div className="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-2">
+                  <div className="flex flex-col sm:flex-row sm:justify-between gap-2 sm:gap-4">
                     <span>Amplitude: ±{(selectedEarthquake.magnitude * 50).toFixed(1)} units</span>
                     <span>Frequency: {frequencyMin}-{frequencyMax} Hz</span>
                     <span>Depth: {selectedEarthquake.depth.toFixed(0)}km</span>
@@ -426,8 +425,8 @@ export default function Seismology() {
               </div>
             </div>
 
-            {/* Spectral Analysis - FIXED mobile layout */}
-            <div className="bg-white rounded-lg shadow border border-gray-100 p-3 sm:p-4 h-[350px] sm:h-[400px]">
+            {/* Spectral Analysis - FIXED spacing and removed extra space */}
+            <div className="bg-white rounded-lg shadow border border-gray-100 p-3 sm:p-4">
               <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-3 sm:mb-4 gap-2 lg:gap-0">
                 <h2 className="font-roboto font-medium text-xs uppercase tracking-wider text-black">
                   Spectral Analysis
@@ -597,40 +596,40 @@ export default function Seismology() {
                 </div>
               </div>
               
-              {/* Enhanced spectral info - NEW MOBILE LAYOUT */}
-              <div className="mt-3 sm:mt-4 text-[9px] sm:text-xs text-gray-500">
+              {/* Enhanced spectral info - FIXED spacing */}
+              <div className="mt-4 text-[9px] sm:text-xs text-gray-500">
                 {selectedEarthquake ? (
-                  <div className="space-y-1 sm:space-y-2">
-                    {/* Mobile: 2 columns - Wave markers (left) vs Earthquake info (right) */}
-                    <div className="grid grid-cols-2 gap-3 sm:hidden">
+                  <div className="space-y-2">
+                    {/* Mobile: 2 columns - Wave markers (left) vs Earthquake info (right) with better spacing */}
+                    <div className="grid grid-cols-2 gap-4 sm:hidden">
                       {/* Left Column: Wave Markers */}
-                      <div className="space-y-1">
-                        <div className="flex items-center space-x-1">
+                      <div className="space-y-1.5">
+                        <div className="flex items-center space-x-1.5">
                           <div className="w-1.5 h-1.5 rounded-full bg-purple-500 flex-shrink-0"></div>
                           <span>P: {(parseFloat(frequencyMin) * 2).toFixed(1)}Hz</span>
                         </div>
-                        <div className="flex items-center space-x-1">
+                        <div className="flex items-center space-x-1.5">
                           <div className="w-1.5 h-1.5 rounded-full bg-green-500 flex-shrink-0"></div>
                           <span>S: {(parseFloat(frequencyMin) * 1.2).toFixed(1)}Hz</span>
                         </div>
-                        <div className="flex items-center space-x-1">
+                        <div className="flex items-center space-x-1.5">
                           <div className="w-1.5 h-1.5 rounded-full bg-red-500 flex-shrink-0"></div>
                           <span>Surf: {(parseFloat(frequencyMin) * 0.7).toFixed(1)}Hz</span>
                         </div>
                       </div>
                       
                       {/* Right Column: Earthquake Info */}
-                      <div className="space-y-1 text-right">
+                      <div className="space-y-1.5 text-right">
                         <div>Mag: {selectedEarthquake.magnitude.toFixed(1)}</div>
                         <div>Depth: {selectedEarthquake.depth.toFixed(0)}km</div>
                         <div>Range: {frequencyMin}-{frequencyMax}Hz</div>
                       </div>
                     </div>
 
-                    {/* Desktop: Original layout (hidden on mobile, shown on sm+) */}
-                    <div className="hidden sm:block">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 sm:gap-2">
-                        <div className="flex items-center space-x-1">
+                    {/* Desktop: Original layout (hidden on mobile, shown on sm+) with better spacing */}
+                    <div className="hidden sm:block space-y-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4">
+                        <div className="flex items-center space-x-2">
                           <div className="w-2 h-2 rounded-full bg-purple-500 flex-shrink-0"></div>
                           <span className="truncate">P-waves: ~{(parseFloat(frequencyMin) * 2).toFixed(1)}Hz</span>
                         </div>
@@ -639,8 +638,8 @@ export default function Seismology() {
                         </div>
                       </div>
                       
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 sm:gap-2">
-                        <div className="flex items-center space-x-1">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4">
+                        <div className="flex items-center space-x-2">
                           <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0"></div>
                           <span className="truncate">S-waves: ~{(parseFloat(frequencyMin) * 1.2).toFixed(1)}Hz</span>
                         </div>
@@ -649,8 +648,8 @@ export default function Seismology() {
                         </div>
                       </div>
                       
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 sm:gap-2">
-                        <div className="flex items-center space-x-1">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4">
+                        <div className="flex items-center space-x-2">
                           <div className="w-2 h-2 rounded-full bg-red-500 flex-shrink-0"></div>
                           <span className="truncate">Surface: ~{(parseFloat(frequencyMin) * 0.7).toFixed(1)}Hz</span>
                         </div>
