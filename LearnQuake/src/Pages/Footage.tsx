@@ -1,13 +1,28 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Header from "../components/Header";
 import FootageModal from "../components/ui/footageModal";
 import Lanao from "../assets/Footage/lanao.mp4"
 import Cebu from "../assets/Footage/cebu.mp4"
+import { fetchEarthquakeNews } from "../services/newsApi";
+import type { NewsArticle } from "../services/newsApi";
 
 
 export default function Footage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedCard, setSelectedCard] = useState<any>(null);
+  const [newsArticles, setNewsArticles] = useState<NewsArticle[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadNews();
+  }, []);
+
+  const loadNews = async () => {
+    setLoading(true);
+    const articles = await fetchEarthquakeNews(10, 'ph');
+    setNewsArticles(articles);
+    setLoading(false);
+  };
 
   const videoCards = [
     {
@@ -90,17 +105,6 @@ export default function Footage() {
         <p className="mb-2">
         <strong>Intensity IV:</strong> Tacloban City (Leyte), Catbalogan (Samar), Dumaguete City (Negros Oriental)
         </p>
-        <p className="mb-2">
-        <strong>Intensity III-II:</strong> Felt in Iloilo, Bacolod (Negros Occidental), Southern Leyte, Samar provinces
-        </p>
-
-        <h5 className="font-bold text-xl mb-3">Casualty & Injury</h5>
-        <ul className="list-disc ml-6">
-        <li><strong>At least 72 deaths</strong> reported as of October 2, 2025.</li>
-        <li><strong>Hundreds injured</strong> (estimates between 294–559 depending on official updates).</li>
-        <li>Casualties concentrated in Bogo, San Remigio, and Medellin municipalities.</li>
-        <li>Fatal incidents included a roof collapse during a basketball game and landslides triggered by the quake.</li>
-        </ul>
         </div>
       ),
     },
@@ -116,46 +120,146 @@ export default function Footage() {
     setModalOpen(false);
   };
 
+  const openNewsArticle = (article: NewsArticle) => {
+    setSelectedCard({
+      title: article.title,
+      date: new Date(article.publishedAt).toLocaleDateString(),
+      location: article.source.name,
+      type: "news",
+      modalContent: (
+        <div>
+          {article.urlToImage && (
+            <img
+              src={article.urlToImage}
+              alt={article.title}
+              className="w-full rounded-lg mb-6"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+              }}
+            />
+          )}
+          <h3 className="font-bold text-xl mb-3">Article Summary</h3>
+          <p className="mb-4">{article.description}</p>
+          
+          <a
+            href={article.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+          >
+            Read Full Article →
+          </a>
+          
+          <p className="text-sm text-gray-500 mt-4">
+            Source: {article.source.name} • {new Date(article.publishedAt).toLocaleDateString()}
+          </p>
+        </div>
+      ),
+    });
+    setModalOpen(true);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        <h1 className="text-3xl font-bold mb-4">Video Gallery</h1>
+        <h1 className="text-3xl font-bold mb-4">Video Gallery & News</h1>
         <p className="text-gray-600 mb-8">
-          Experience real earthquake footage from across the Philippines. Tap to
-          learn more about each event and how it affected local communities.
+          Experience real earthquake footage from across the Philippines and stay updated with the latest news.
         </p>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {videoCards.map((card) => (
-            <div
-              key={card.id}
-              className="bg-white rounded-xl shadow hover:shadow-lg transition p-4 flex flex-col"
-            >
-              {/* Video Preview */}
-              <video
-                src={card.video}
-                className="w-full h-48 object-cover rounded-md mb-4"
-                controls={false}
-                muted
-                loop
-              />
-
-              <p className="text-sm text-gray-500">{card.date}</p>
-              <p className="text-sm text-gray-500">{card.location}</p>
-              <h3 className="text-lg font-semibold mt-2">{card.title}</h3>
-              <p className="text-sm text-gray-700 mt-1">{card.description}</p>
-
-              <button
+        {/* Local Video Footage Section */}
+        <section className="mb-12">
+          <h2 className="text-2xl font-bold mb-4">Featured Footage</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {videoCards.map((card) => (
+              <div
+                key={card.id}
+                className="bg-white rounded-xl shadow hover:shadow-lg transition p-4 flex flex-col cursor-pointer"
                 onClick={() => openModal(card)}
-                className="mt-4 px-4 py-2 bg-quake-purple text-white rounded-lg hover:bg-quake-dark-blue transition"
               >
-                View More
-              </button>
+                <video
+                  src={card.video}
+                  className="w-full h-48 object-cover rounded-md mb-4"
+                  muted
+                  loop
+                />
+
+                <p className="text-sm text-gray-500">{card.date}</p>
+                <p className="text-sm text-gray-500">{card.location}</p>
+                <h3 className="text-lg font-semibold mt-2">{card.title}</h3>
+                <p className="text-sm text-gray-700 mt-1 line-clamp-2">{card.description}</p>
+
+                <button
+                  className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                >
+                  View More
+                </button>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Recent News Section */}
+        <section>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-2xl font-bold">Recent Earthquake News</h2>
+            <button
+              onClick={loadNews}
+              disabled={loading}
+              className="px-4 py-2 text-sm bg-gray-200 rounded-lg hover:bg-gray-300 transition disabled:opacity-50"
+            >
+              {loading ? 'Loading...' : 'Refresh'}
+            </button>
+          </div>
+
+          {loading ? (
+            <div className="text-center py-10">
+              <p className="text-gray-500">Loading news articles...</p>
             </div>
-          ))}
-        </div>
+          ) : newsArticles.length === 0 ? (
+            <div className="text-center py-10">
+              <p className="text-gray-500">No news articles found.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {newsArticles.map((article, index) => (
+                <div
+                  key={index}
+                  className="bg-white rounded-xl shadow hover:shadow-lg transition p-4 flex flex-col cursor-pointer"
+                  onClick={() => openNewsArticle(article)}
+                >
+                  {article.urlToImage && (
+                    <img
+                      src={article.urlToImage}
+                      alt={article.title}
+                      className="w-full h-48 object-cover rounded-md mb-4"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                  )}
+
+                  <p className="text-xs text-gray-500 mb-1">
+                    {new Date(article.publishedAt).toLocaleDateString()}
+                  </p>
+                  <p className="text-xs text-gray-500 mb-2">{article.source.name}</p>
+                  <h3 className="text-base font-semibold mt-2 line-clamp-2">
+                    {article.title}
+                  </h3>
+                  <p className="text-sm text-gray-700 mt-2 line-clamp-3 flex-grow">
+                    {article.description}
+                  </p>
+
+                  <button className="mt-4 px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition">
+                    Read Article
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
       </main>
 
       {selectedCard && (
