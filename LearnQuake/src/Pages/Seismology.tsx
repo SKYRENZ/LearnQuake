@@ -1,74 +1,359 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Header from '../components/Header';
-import { useEarthquakeData } from '../hooks/useEarthquakeData';
-import { useEarthquakeFilters } from '../hooks/useEarthquakeFilters';
-import { useFrequencyControls } from '../hooks/useFrequencyControls';
-import { useSeismicAnalysis } from '../hooks/useSeismicAnalysis';
+import { getEndpoint } from '../api/client';
+
+interface EarthquakeData {
+  id: string;
+  magnitude: number;
+  place: string;
+  time: Date;
+  depth: number;
+  latitude: number;
+  longitude: number;
+}
+
+interface SearchResult {
+  searchLocation: {
+    name: string;
+    latitude?: number;
+    longitude?: number;
+    country?: string;
+    fullAddress?: string;
+  };
+  earthquakes: EarthquakeData[];
+  totalFound: number;
+  showing: number;
+  searchMethod?: string;
+}
+
+interface TimeSeriesData {
+  time: number;
+  amplitude: number;
+  frequency: number;
+}
 
 export default function Seismology() {
+  const [searchQuery, setSearchQuery] = useState('');
   const [locationSearch, setLocationSearch] = useState('');
+  const [frequencyMin, setFrequencyMin] = useState('0.1');
+  const [frequencyMax, setFrequencyMax] = useState('10.0');
+  const [errorMin, setErrorMin] = useState(false);
+  const [errorMax, setErrorMax] = useState(false);
+  const [noise, setNoise] = useState(10);
+  const [earthquakeData, setEarthquakeData] = useState<EarthquakeData[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [searchResult, setSearchResult] = useState<SearchResult | null>(null);
+  
+  // Filtering states
+  const [magnitudeFilter, setMagnitudeFilter] = useState('');
+  const [magnitudeError, setMagnitudeError] = useState(false);
+  const [sortOrder, setSortOrder] = useState<'recent' | 'oldest' | 'magnitude'>('recent');
+
+  // Selected earthquake
   const [selectedEarthquakeId, setSelectedEarthquakeId] = useState<string | null>(null);
+
+  // Real-time updates
   const [currentTime, setCurrentTime] = useState(new Date());
 
-  // Custom hooks
-  const {
-    earthquakeData,
-    loading,
-    error,
-    searchResult,
-    searchEarthquakes,
-  } = useEarthquakeData();
+  // Generate time series data based on selected earthquake
+  const generateTimeSeriesData = (earthquake: EarthquakeData | null): TimeSeriesData[] => {
+    if (!earthquake) {
+      return Array.from({ length: 100 }, (_, i) => ({
+        time: i,
+        amplitude: Math.sin(i * 0.1) * 50 + Math.random() * (noise / 2) - (noise / 4),
+        frequency: 1.0
+      }));
+    }
 
-  const {
-    searchQuery,
-    setSearchQuery,
-    magnitudeFilter,
-    magnitudeError,
-    sortOrder,
-    setSortOrder,
-    filteredEarthquakes,
-    handleMagnitudeChange,
-  } = useEarthquakeFilters(earthquakeData);
-
-  const {
-    frequencyMin,
-    frequencyMax,
-    setFrequencyMin,
-    setFrequencyMax,
-    errorMin,
-    errorMax,
-    setErrorMin,
-    setErrorMax,
-    noise,
-    setNoise,
-    handleFrequencyChange,
-  } = useFrequencyControls();
+    const dataPoints = 200;
+    const baseFreq = Math.max(0.1, parseFloat(frequencyMin) || 0.1);
+    const maxFreq = Math.min(20.0, parseFloat(frequencyMax) || 10.0);
+    
+    return Array.from({ length: dataPoints }, (_, i) => {
+      const t = i / 10;
+      const primaryWave = Math.sin(t * baseFreq * 2 * Math.PI) * earthquake.magnitude * 10;
+      const secondaryWave = Math.sin(t * (baseFreq * 1.7) * 2 * Math.PI) * earthquake.magnitude * 7;
+      const surfaceWave = Math.sin(t * (baseFreq * 0.8) * 2 * Math.PI) * earthquake.magnitude * 15;
+      const depthFactor = Math.exp(-earthquake.depth / 100);
+      const distanceDecay = Math.exp(-t * 0.1);
+      const amplitude = (primaryWave + secondaryWave + surfaceWave) * depthFactor * distanceDecay;
+      const noiseComponent = (Math.random() - 0.5) * (noise / 5);
+      
+      return {
+        time: t,
+        amplitude: amplitude + noiseComponent,
+        frequency: baseFreq + (Math.random() * (maxFreq - baseFreq))
+      };
+    });
+  };
 
   // Get selected earthquake object
   const selectedEarthquake = useMemo(() => {
     return earthquakeData.find(eq => eq.id === selectedEarthquakeId) || null;
   }, [earthquakeData, selectedEarthquakeId]);
 
-  const {
-    timeSeriesData,
-    spectralData,
-    createTimeSeriesPath,
-    createSpectralPath,
-  } = useSeismicAnalysis(selectedEarthquake, frequencyMin, frequencyMax, noise);
+  // Generate time series data
+  const timeSeriesData = useMemo(() => {
+    return generateTimeSeriesData(selectedEarthquake);
+  }, [selectedEarthquake, noise, frequencyMin, frequencyMax]);
 
-  // Real-time updates
+  // Create SVG path for time series
+  const createTimeSeriesPath = (data: TimeSeriesData[], width: number, height: number) => {
+    if (data.length === 0) return '';
+
+    const maxAmplitude = Math.max(...data.map(d => Math.abs(d.amplitude)));
+    const minAmplitude = -maxAmplitude;
+    
+    const xScale = (index: number) => (index / (data.length - 1)) * width;
+    const yScale = (amplitude: number) => {
+      const normalized = (amplitude - minAmplitude) / (maxAmplitude - minAmplitude);
+      return height - (normalized * height);
+    };
+
+    let path = `M ${xScale(0)} ${yScale(data[0].amplitude)}`;
+    for (let i = 1; i < data.length; i++) {
+      path += ` L ${xScale(i)} ${yScale(data[i].amplitude)}`;
+    }
+    return path;
+  };
+
+  // Generate spectral analysis data
+  const generateSpectralData = (earthquake: EarthquakeData | null) => {
+    if (!earthquake) {
+      return {
+        fft: Array.from({ length: 50 }, (_, i) => ({
+          frequency: i * 0.4,
+          amplitude: Math.random() * 50 + 10
+        })),
+        spectrogram: Array.from({ length: 50 }, (_, i) => ({
+          frequency: i * 0.4,
+          amplitude: Math.random() * 80 + 20
+        }))
+      };
+    }
+
+    const baseFreq = Math.max(0.1, parseFloat(frequencyMin) || 0.1);
+    const maxFreq = Math.min(20.0, parseFloat(frequencyMax) || 10.0);
+    const freqRange = maxFreq - baseFreq;
+    
+    const fftData = Array.from({ length: 50 }, (_, i) => {
+      const freq = baseFreq + (i / 49) * freqRange;
+      let amplitude = 0;
+      
+      const pWaveFreq = baseFreq * 2;
+      if (Math.abs(freq - pWaveFreq) < 1) {
+        amplitude += earthquake.magnitude * 15;
+      }
+      
+      const sWaveFreq = baseFreq * 1.2;
+      if (Math.abs(freq - sWaveFreq) < 0.8) {
+        amplitude += earthquake.magnitude * 12;
+      }
+      
+      const surfaceWaveFreq = baseFreq * 0.7;
+      if (Math.abs(freq - surfaceWaveFreq) < 0.5) {
+        amplitude += earthquake.magnitude * 20;
+      }
+      
+      const depthFactor = Math.exp(-earthquake.depth / 200);
+      amplitude *= depthFactor;
+      amplitude += Math.random() * (earthquake.magnitude * 2);
+      
+      return {
+        frequency: freq,
+        amplitude: Math.max(0, amplitude)
+      };
+    });
+
+    const spectrogramData = Array.from({ length: 50 }, (_, i) => {
+      const freq = baseFreq + (i / 49) * freqRange;
+      let amplitude = 0;
+      const timePhase = (i / 50) * Math.PI * 2;
+      
+      if (freq < baseFreq * 2) {
+        amplitude += earthquake.magnitude * 18 * Math.sin(timePhase + Math.PI);
+      }
+      if (freq > baseFreq * 1.5) {
+        amplitude += earthquake.magnitude * 10 * Math.cos(timePhase);
+      }
+      
+      amplitude *= (earthquake.magnitude / 7);
+      const depthFactor = Math.exp(-earthquake.depth / 150);
+      amplitude *= depthFactor;
+      amplitude += Math.random() * (earthquake.magnitude * 3);
+      
+      return {
+        frequency: freq,
+        amplitude: Math.max(0, amplitude)
+      };
+    });
+
+    return {
+      fft: fftData,
+      spectrogram: spectrogramData
+    };
+  };
+
+  const spectralData = useMemo(() => {
+    return generateSpectralData(selectedEarthquake);
+  }, [selectedEarthquake, frequencyMin, frequencyMax]);
+
+  // Create SVG path for spectral analysis
+  const createSpectralPath = (data: { frequency: number; amplitude: number }[], width: number, height: number) => {
+    if (data.length === 0) return '';
+
+    const maxAmplitude = Math.max(...data.map(d => d.amplitude));
+    const minAmplitude = 0;
+    
+    const xScale = (index: number) => (index / (data.length - 1)) * width;
+    const yScale = (amplitude: number) => {
+      const normalized = (amplitude - minAmplitude) / (maxAmplitude - minAmplitude);
+      return height - (normalized * height);
+    };
+
+    let path = `M ${xScale(0)} ${yScale(data[0].amplitude)}`;
+    for (let i = 1; i < data.length; i++) {
+      path += ` L ${xScale(i)} ${yScale(data[i].amplitude)}`;
+    }
+    return path;
+  };
+
+  // Search earthquakes by country
+  const searchEarthquakes = async (country: string) => {
+    if (!country.trim()) return;
+    
+    setLoading(true);
+    setError(null);
+    
+    try {
+      console.log(`🔍 Searching for earthquakes in: "${country}"`);
+      const response = await fetch(
+        getEndpoint('searchByCountry', {
+          country,
+          timeframe: 'month',
+          limit: '50'
+        })
+      );
+      const result = await response.json();
+
+      if (result.success) {
+        setEarthquakeData(result.data.earthquakes);
+        setSearchResult(result.data);
+        console.log(`✅ Search completed for country: ${country}`);
+        console.log(`📊 Found ${result.data.totalFound} earthquakes`);
+      } else {
+        setError(result.error);
+        setEarthquakeData([]);
+        setSearchResult(null);
+      }
+    } catch (err) {
+      setError('Failed to search earthquakes. Make sure the backend server is running.');
+      console.error('Error:', err);
+      setEarthquakeData([]);
+      setSearchResult(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load default earthquakes on mount
+  useEffect(() => {
+    async function loadDefaultEarthquakes() {
+      const endpoint =
+        (import.meta.env.VITE_EARTHQUAKES_ENDPOINT as string) ||
+        '/.netlify/functions/earthquakes';
+
+      try {
+        const res = await fetch(endpoint);
+        const text = await res.text();
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}: ${text}`);
+        }
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch (e) {
+          throw new Error('Expected JSON from earthquakes endpoint');
+        }
+        if (data.success) {
+          setEarthquakeData(data.data);
+        } else {
+          throw new Error(data.error || 'Unknown error');
+        }
+      } catch (err) {
+        console.error('Error loading default earthquakes:', err);
+        setError('Failed to load default earthquakes. Please try again later.');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadDefaultEarthquakes();
+  }, []);
+
+  // Real-time clock updates
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
-    }, 60000); // Update every minute
+    }, 60000);
 
     return () => clearInterval(timer);
   }, []);
+
+  const handleFrequencyChange = (
+    value: string,
+    setValue: React.Dispatch<React.SetStateAction<string>>,
+    setError: React.Dispatch<React.SetStateAction<boolean>>
+  ) => {
+    if (/^\d*\.?\d*$/.test(value)) {
+      setValue(value);
+      setError(false);
+    } else {
+      setValue(value);
+      setError(true);
+    }
+  };
 
   const handleLocationSearch = (e: React.FormEvent) => {
     e.preventDefault();
     searchEarthquakes(locationSearch);
   };
+
+  const handleMagnitudeChange = (value: string) => {
+    if (value === '' || /^\d*\.?\d*$/.test(value)) {
+      setMagnitudeFilter(value);
+      setMagnitudeError(false);
+    } else {
+      setMagnitudeFilter(value);
+      setMagnitudeError(true);
+    }
+  };
+
+  // Filter earthquakes
+  const filteredEarthquakes = earthquakeData
+    .filter(earthquake => {
+      const textMatch = earthquake.place.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                       earthquake.magnitude.toString().includes(searchQuery) ||
+                       new Date(earthquake.time).toLocaleDateString().includes(searchQuery);
+
+      const magnitudeMatch = magnitudeFilter === '' || 
+                            earthquake.magnitude >= parseFloat(magnitudeFilter);
+
+      return textMatch && magnitudeMatch;
+    })
+    .sort((a, b) => {
+      switch (sortOrder) {
+        case 'recent':
+          return new Date(b.time).getTime() - new Date(a.time).getTime();
+        case 'oldest':
+          return new Date(a.time).getTime() - new Date(b.time).getTime();
+        case 'magnitude':
+          return b.magnitude - a.magnitude;
+        default:
+          return 0;
+      }
+    });
 
   // Get formatted current date
   const currentDate = useMemo(() => {
@@ -96,7 +381,7 @@ export default function Seismology() {
           </div>
         </div>
 
-        {/* Responsive Grid Layout - Fixed for proper desktop width */}
+        {/* Responsive Grid Layout */}
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
           
           {/* Left Side - Search + Earthquake Data */}
@@ -268,10 +553,10 @@ export default function Seismology() {
             </div>
           </div>
 
-          {/* Right Side - Analysis Tools (Fixed for proper desktop width) */}
+          {/* Right Side - Analysis Tools */}
           <div className="order-2 space-y-3 sm:space-y-4">
             
-            {/* Selected Earthquake Info - ALWAYS SHOW with preview */}
+            {/* Selected Earthquake Info */}
             <div className={`rounded-lg p-3 sm:p-4 ${
               selectedEarthquake 
                 ? 'bg-blue-50 border border-blue-200' 
@@ -357,7 +642,7 @@ export default function Seismology() {
               </div>
             </div>
 
-            {/* Time Series Filtering - ALWAYS SHOW with preview */}
+            {/* Time Series Filtering */}
             <div className="bg-white rounded-lg shadow border border-gray-100 p-3 sm:p-4">
               <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-3 sm:mb-4 gap-2 lg:gap-0">
                 <h2 className="font-roboto font-medium text-xs sm:text-sm uppercase tracking-wider text-black">
@@ -388,7 +673,7 @@ export default function Seismology() {
               
               <div className="relative h-32 sm:h-40">
                 <div className="absolute inset-0 flex">
-                  {/* Y-axis labels - ALWAYS SHOW with preview values */}
+                  {/* Y-axis labels */}
                   <div className="flex flex-col justify-between items-end pr-1 sm:pr-2 py-1 sm:py-2 text-right min-w-[30px] sm:min-w-[40px]">
                     {selectedEarthquake ? (
                       <>
@@ -424,18 +709,13 @@ export default function Seismology() {
                       viewBox="0 0 600 160" 
                       preserveAspectRatio="none"
                     >
-                      {/* Grid lines */}
                       <defs>
                         <pattern id="grid" width="30" height="32" patternUnits="userSpaceOnUse">
                           <path d="M 30 0 L 0 0 0 32" fill="none" stroke="#f0f0f0" strokeWidth="0.5"/>
                         </pattern>
                       </defs>
                       <rect width="100%" height="100%" fill="url(#grid)" />
-                      
-                      {/* Zero line */}
                       <line x1="0" y1="80" x2="600" y2="80" stroke="#e0e0e0" strokeWidth="1" strokeDasharray="2,2"/>
-                      
-                      {/* Time series path */}
                       <path 
                         d={createTimeSeriesPath(timeSeriesData, 600, 160)}
                         stroke={selectedEarthquake ? "#3B38A0" : "#D1D5DB"} 
@@ -444,7 +724,6 @@ export default function Seismology() {
                       />
                     </svg>
                     
-                    {/* X-axis labels */}
                     <div className="absolute -bottom-3 sm:-bottom-4 left-0 right-0 flex justify-between text-[7px] sm:text-[8px]">
                       <span className={selectedEarthquake ? "text-gray-400" : "text-gray-300"}>0s</span>
                       <span className={selectedEarthquake ? "text-gray-400" : "text-gray-300"}>5s</span>
@@ -456,7 +735,6 @@ export default function Seismology() {
                 </div>
               </div>
               
-              {/* Graph info - ALWAYS SHOW with preview */}
               <div className="mt-8 text-[10px] sm:text-xs text-gray-500">
                 {selectedEarthquake ? (
                   <div className="flex flex-col sm:flex-row sm:justify-between gap-2 sm:gap-4">
@@ -474,7 +752,7 @@ export default function Seismology() {
               </div>
             </div>
 
-            {/* Spectral Analysis - ALWAYS SHOW with preview */}
+            {/* Spectral Analysis */}
             <div className="bg-white rounded-lg shadow border border-gray-100 p-3 sm:p-4">
               <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-3 sm:mb-4 gap-2 lg:gap-0">
                 <h2 className="font-roboto font-medium text-xs uppercase tracking-wider text-black">
@@ -499,7 +777,7 @@ export default function Seismology() {
               
               <div className="relative h-[200px] sm:h-[240px]">
                 <div className="absolute inset-0 flex">
-                  {/* Y-axis labels - ALWAYS SHOW with preview values */}
+                  {/* Y-axis labels */}
                   <div className="flex flex-col justify-between items-end pr-1 sm:pr-2 py-1 sm:py-2 text-right min-w-[25px] sm:min-w-[30px]">
                     {selectedEarthquake ? (
                       <>
@@ -528,7 +806,7 @@ export default function Seismology() {
                     )}
                   </div>
                   
-                  {/* Graph area with overflow clipping */}
+                  {/* Graph area */}
                   <div className="flex-1 relative border-l border-b border-gray-200">
                     <div className="absolute inset-0 overflow-hidden">
                       <svg 
@@ -536,7 +814,6 @@ export default function Seismology() {
                         viewBox="0 0 420 240" 
                         preserveAspectRatio="none"
                       >
-                        {/* Clipping path to prevent overflow */}
                         <defs>
                           <clipPath id="graphClip">
                             <rect x="0" y="0" width="420" height="240"/>
@@ -547,9 +824,8 @@ export default function Seismology() {
                         </defs>
                         <rect width="100%" height="100%" fill="url(#spectral-grid)" />
                         
-                        {/* Everything inside clipping path */}
                         <g clipPath="url(#graphClip)">
-                          {/* Wave Markers - ALWAYS SHOW, but faded when no selection */}
+                          {/* Wave Markers */}
                           {(() => {
                             const baseFreq = Math.max(0.1, parseFloat(frequencyMin) || 0.1);
                             const maxFreq = Math.min(20.0, parseFloat(frequencyMax) || 10.0);
@@ -557,12 +833,10 @@ export default function Seismology() {
                             
                             if (freqRange <= 0) return null;
                             
-                            // Calculate wave frequencies
                             const pWaveFreq = baseFreq * 2;
                             const sWaveFreq = baseFreq * 1.2;
                             const surfaceWaveFreq = baseFreq * 0.7;
                             
-                            // Safe positioning - no text overflow
                             const getXPosition = (freq: number) => {
                               if (freq < baseFreq || freq > maxFreq) return null;
                               const position = ((freq - baseFreq) / freqRange) * 420;
@@ -576,7 +850,6 @@ export default function Seismology() {
                             
                             return (
                               <>
-                                {/* P-wave marker - Always show */}
                                 {pWaveX !== null && (
                                   <line 
                                     x1={pWaveX} y1="0" 
@@ -587,8 +860,6 @@ export default function Seismology() {
                                     opacity={opacity}
                                   />
                                 )}
-                                
-                                {/* S-wave marker - Always show */}
                                 {sWaveX !== null && (
                                   <line 
                                     x1={sWaveX} y1="0" 
@@ -599,8 +870,6 @@ export default function Seismology() {
                                     opacity={opacity}
                                   />
                                 )}
-                                
-                                {/* Surface wave marker - Always show */}
                                 {surfaceWaveX !== null && (
                                   <line 
                                     x1={surfaceWaveX} y1="0" 
@@ -615,7 +884,6 @@ export default function Seismology() {
                             );
                           })()}
                           
-                          {/* FFT Path */}
                           <path 
                             d={createSpectralPath(spectralData.fft, 420, 240)}
                             stroke={selectedEarthquake ? "#6C60FF" : "#D1D5DB"} 
@@ -624,7 +892,6 @@ export default function Seismology() {
                             opacity={selectedEarthquake ? "1" : "0.5"}
                           />
                           
-                          {/* Spectrogram Path */}
                           <path 
                             d={createSpectralPath(spectralData.spectrogram, 420, 240)}
                             stroke={selectedEarthquake ? "#CE2A96" : "#D1D5DB"} 
@@ -636,7 +903,6 @@ export default function Seismology() {
                       </svg>
                     </div>
                     
-                    {/* X-axis labels (Frequency) */}
                     <div className="absolute -bottom-3 sm:-bottom-4 left-0 right-0 flex justify-between text-[7px] sm:text-[8px]">
                       <span className={selectedEarthquake ? "text-gray-400" : "text-gray-300"}>{frequencyMin}Hz</span>
                       <span className={selectedEarthquake ? "text-gray-400" : "text-gray-300"}>
@@ -648,12 +914,11 @@ export default function Seismology() {
                 </div>
               </div>
               
-              {/* Enhanced spectral info - ALWAYS SHOW with preview */}
+              {/* Spectral info */}
               <div className="mt-4 text-[9px] sm:text-xs text-gray-500">
                 <div className="space-y-2">
-                  {/* Mobile: 2 columns - Wave markers (left) vs Earthquake info (right) with better spacing */}
+                  {/* Mobile layout */}
                   <div className="grid grid-cols-2 gap-4 sm:hidden">
-                    {/* Left Column: Wave Markers - ALWAYS SHOW */}
                     <div className="space-y-1.5">
                       <div className="flex items-center space-x-1.5">
                         <div className="w-1.5 h-1.5 rounded-full bg-purple-500 flex-shrink-0"></div>
@@ -675,7 +940,6 @@ export default function Seismology() {
                       </div>
                     </div>
                     
-                    {/* Right Column: Earthquake Info - ALWAYS SHOW */}
                     <div className="space-y-1.5 text-right">
                       <div className={selectedEarthquake ? "" : "text-gray-400"}>
                         Mag: {selectedEarthquake ? selectedEarthquake.magnitude.toFixed(1) : '--'}
@@ -689,7 +953,7 @@ export default function Seismology() {
                     </div>
                   </div>
 
-                  {/* Desktop: Original layout (hidden on mobile, shown on sm+) with better spacing */}
+                  {/* Desktop layout */}
                   <div className="hidden sm:block space-y-2">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4">
                       <div className="flex items-center space-x-2">
