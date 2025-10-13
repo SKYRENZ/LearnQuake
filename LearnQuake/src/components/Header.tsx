@@ -24,30 +24,30 @@ const Header = () => {
     <header className="w-full bg-white border-b border-gray-200 shadow-sm">
       {/* Top section with logo, search, and main nav */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-18 md:h-22 py-2">
+        <div className="flex items-center justify-between h-16 md:h-20 py-2">
           {/* Logo */}
           <div className="flex-shrink-0 flex items-center">
             <img 
               src={QuakeLearnLogo} 
               alt="QuakeLearn" 
-              className="h-16 md:h-20 w-auto"
+              className="h-12 md:h-16 w-auto"
             />
           </div>
 
           {/* Desktop Navigation and Search */}
-          <div className="flex flex-1 justify-center items-center space-x-6">
+          <div className="flex flex-1 justify-center items-center space-x-4 lg:space-x-6">
             {/* Search Bar */}
             <div className="relative">
-              <div className="flex items-center bg-quake-light-gray border-2 border-quake-light-purple rounded-2xl px-5 py-3 w-64 lg:w-80 xl:w-96 shadow-sm hover:shadow-md transition-shadow duration-200">
+              <div className="flex items-center bg-quake-light-gray border-2 border-quake-light-purple rounded-2xl px-3 py-2 w-40 lg:w-56 xl:w-72 shadow-sm hover:shadow-md transition-shadow duration-200">
                 <input
                   type="text"
-                  placeholder="Search earthquakes, locations, magnitudes..."
+                  placeholder="Search earthquakes..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="bg-transparent text-sm font-inter font-semibold text-quake-gray placeholder-quake-gray border-none outline-none flex-1"
+                  className="bg-transparent text-xs lg:text-sm font-inter font-semibold text-quake-gray placeholder-quake-gray border-none outline-none flex-1"
                 />
                 <svg 
-                  className="w-4 h-4 ml-3 text-quake-gray" 
+                  className="w-3 h-3 lg:w-4 lg:h-4 ml-2 text-quake-gray" 
                   fill="none" 
                   stroke="currentColor" 
                   viewBox="0 0 24 24"
@@ -63,21 +63,21 @@ const Header = () => {
             </div>
 
             {/* Navigation Items */}
-              <nav className="flex items-center space-x-2 lg:space-x-4">
-    {navigationItems.map((item) => (
-      <Link
-        key={item.path}
-        to={item.path}
-        className={`font-inter font-medium text-[15px] px-3 py-2 rounded-lg transition-all duration-200 ${
-          isActive(item.path)
-            ? 'bg-quake-light-purple text-quake-light-gray shadow-sm'
-            : 'text-black hover:text-quake-purple hover:bg-gray-50'
-        }`}
-      >
-        {item.label}
-      </Link>
-    ))}
-  </nav>
+            <nav className="flex items-center space-x-1 lg:space-x-2">
+              {navigationItems.map((item) => (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className={`font-inter font-medium text-xs lg:text-sm px-1 lg:px-2 py-1 lg:py-2 rounded-lg transition-all duration-200 whitespace-nowrap ${
+                    isActive(item.path)
+                      ? 'bg-quake-light-purple text-quake-light-gray shadow-sm'
+                      : 'text-black hover:text-quake-purple hover:bg-gray-50'
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </nav>
           </div>
 
           {/* Mobile menu button */}
@@ -98,10 +98,10 @@ const Header = () => {
         <div className="md:hidden border-t border-gray-200 py-6">
           {/* Mobile Search */}
           <div className="mb-6">
-            <div className="flex items-center bg-quake-light-gray border-2 border-quake-light-purple rounded-2xl px-5 py-3 shadow-sm w-full">
+            <div className="flex items-center bg-quake-light-gray border-2 border-quake-light-purple rounded-2xl px-4 py-3 shadow-sm w-full">
               <input
                 type="text"
-                placeholder="Search earthquakes, locations, magnitudes..."
+                placeholder="Search earthquakes..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="bg-transparent text-sm font-inter font-semibold text-quake-gray placeholder-quake-gray border-none outline-none flex-1"
