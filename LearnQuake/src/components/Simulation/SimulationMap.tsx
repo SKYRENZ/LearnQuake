@@ -19,11 +19,8 @@ import TileLayer from 'ol/layer/Tile';
 import VectorLayer from 'ol/layer/Vector';
 import OSM from 'ol/source/OSM';
 import VectorSource from 'ol/source/Vector';
+import { Circle as CircleStyle, Fill, Stroke, Style } from 'ol/style';
 import GeoJSON from 'ol/format/GeoJSON';
-import Style from 'ol/style/Style';
-import CircleStyle from 'ol/style/Circle';
-import Fill from 'ol/style/Fill';
-import Stroke from 'ol/style/Stroke';
 import Feature from 'ol/Feature';
 import Point from 'ol/geom/Point';
 import Polygon, { circular as polygonCircular } from 'ol/geom/Polygon';
@@ -80,6 +77,8 @@ interface EarthquakeProperties {
 
 const FEED_URL =
   'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson';
+const FAULT_LINES_URL =
+  'https://raw.githubusercontent.com/fraxen/tectonicplates/master/GeoJSON/PB2002_boundaries.json';
 
 const SimulationMap = forwardRef<SimulationMapHandle, SimulationMapProps>(
   (
@@ -108,11 +107,17 @@ const SimulationMap = forwardRef<SimulationMapHandle, SimulationMapProps>(
     const simCoordRef = useRef<[number, number] | null>(null);
     const popupContainerRef = useRef<HTMLDivElement | null>(null);
     const popupRef = useRef<Overlay | null>(null);
+    const faultLineSourceRef = useRef<VectorSource | null>(null);
+    const faultLineLayerRef = useRef<VectorLayer<VectorSource> | null>(null);
 
     const [overlayReady, setOverlayReady] = useState(false);
     const [query, setQuery] = useState('');
     const [results, setResults] = useState<NominatimResult[]>([]);
     const [isSearching, setIsSearching] = useState(false);
+    const [faultLinesVisible, setFaultLinesVisible] = useState(false);
+    const [faultLinesLoading, setFaultLinesLoading] = useState(false);
+    const [faultLinesError, setFaultLinesError] = useState<string | null>(null);
+    const [faultLinesLoaded, setFaultLinesLoaded] = useState(false);
 
     const createGeodesicPolygon = useCallback(
       (center3857: [number, number], radiusMeters: number) => {
@@ -408,6 +413,46 @@ const SimulationMap = forwardRef<SimulationMapHandle, SimulationMapProps>(
         }),
       );
 
+      const faultLineSource = new VectorSource();
+      faultLineSourceRef.current = faultLineSource;
+      const faultLineLayer = new VectorLayer({
+        source: faultLineSource,
+        visible: false,
+        zIndex: 5,
+        style: () => [
+          new Style({
+            stroke: new Stroke({
+              color: 'rgba(249,115,22,0.18)',
+              width: 12,
+              lineCap: 'round',
+            }),
+          }),
+          new Style({
+            stroke: new Stroke({
+              color: 'rgba(249,115,22,0.55)',
+              width: 6,
+              lineCap: 'round',
+            }),
+          }),
+          new Style({
+            stroke: new Stroke({
+              color: '#f97316',
+              width: 3,
+              lineCap: 'round',
+            }),
+          }),
+          new Style({
+            stroke: new Stroke({
+              color: '#fff7ed',
+              width: 1.6,
+              lineCap: 'round',
+            }),
+          }),
+        ],
+      });
+      map.addLayer(faultLineLayer);
+      faultLineLayerRef.current = faultLineLayer;
+
       const popupElement = document.createElement('div');
       popupElement.className =
         'pointer-events-none rounded-lg bg-quake-dark-blue text-white text-xs px-3 py-2 shadow-lg border border-white/10 hidden max-w-[240px]';
@@ -595,6 +640,51 @@ const SimulationMap = forwardRef<SimulationMapHandle, SimulationMapProps>(
       setHoveredSimMeta,
     ]);
 
+    useEffect(() => {
+      const layer = faultLineLayerRef.current;
+      if (!layer) return;
+
+      layer.setVisible(faultLinesVisible);
+
+      if (faultLinesVisible && !faultLinesLoaded) {
+        setFaultLinesLoading(true);
+        setFaultLinesError(null);
+
+        console.log('Fetching fault lines from:', FAULT_LINES_URL);
+
+        fetch(FAULT_LINES_URL)
+          .then((res) => {
+            console.log('Fault lines response status:', res.status);
+            if (!res.ok) {
+              throw new Error(`HTTP error! status: ${res.status}`);
+            }
+            return res.json();
+          })
+          .then((data) => {
+            console.log('Fault lines data loaded:', data);
+            console.log('Feature count:', data.features?.length);
+            
+            const features = new GeoJSON().readFeatures(data, {
+              featureProjection: 'EPSG:3857',
+            });
+            
+            console.log('Parsed features:', features.length);
+            
+            faultLineSourceRef.current?.clear();
+            faultLineSourceRef.current?.addFeatures(features);
+            setFaultLinesLoaded(true);
+            setFaultLinesError(null);
+          })
+          .catch((error) => {
+            console.error('Failed to load fault lines:', error);
+            setFaultLinesError(`Failed to load: ${error.message}`);
+          })
+          .finally(() => {
+            setFaultLinesLoading(false);
+          });
+      }
+    }, [faultLinesVisible, faultLinesLoaded]);
+
     const commitSimulatedEvent = useCallback(() => {
       const source = simSourceRef.current;
       if (!source || !simCoordRef.current || simMag === '' || simRadiusKm === '')
@@ -673,6 +763,32 @@ const SimulationMap = forwardRef<SimulationMapHandle, SimulationMapProps>(
           onSearch={performSearch}
           onSelectResult={handleSelectSearchResult}
         />
+        <button
+          type="button"
+          className="absolute top-4 left-4 z-20 rounded-md bg-white/90 px-3 py-1 text-sm font-medium text-slate-700 shadow hover:bg-white"
+          onClick={() => setFaultLinesVisible(prev => !prev)}
+        >
+          {faultLinesVisible ? 'Hide Fault Lines' : 'Show Fault Lines'}
+        </button>
+        {faultLinesVisible && (
+          <div className="absolute top-4 right-4 z-20 w-48 rounded-md bg-white/90 p-3 text-xs text-slate-700 shadow">
+            <div className="mb-2 text-sm font-semibold text-slate-800">
+              Fault Line Legend
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="h-1 flex-1 rounded bg-orange-500" />
+              <span>Active fault</span>
+            </div>
+            {faultLinesLoading && (
+              <div className="mt-2 text-[11px] text-slate-500">
+                Loading fault lines…
+              </div>
+            )}
+            {faultLinesError && (
+              <div className="mt-2 text-[11px] text-red-500">{faultLinesError}</div>
+            )}
+          </div>
+        )}
         <div ref={mapContainerRef} className="w-full h-full" />
       </div>
     );
