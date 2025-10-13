@@ -6,12 +6,26 @@
   directory = "netlify/functions"
   node_bundler = "esbuild"
 
+# Map analysis - dedicated function
 [[redirects]]
   from = "/map"
   to = "/.netlify/functions/map"
   status = 200
 
+# News API
 [[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/:splat"
+  from = "/api/news/*"
+  to = "/.netlify/functions/news/:splat"
+  status = 200
+
+# Footage API
+[[redirects]]
+  from = "/api/footage*"
+  to = "/.netlify/functions/footage:splat"
+  status = 200
+
+# Earthquakes API (if you have it)
+[[redirects]]
+  from = "/api/earthquakes*"
+  to = "/.netlify/functions/earthquakes:splat"
   status = 200
