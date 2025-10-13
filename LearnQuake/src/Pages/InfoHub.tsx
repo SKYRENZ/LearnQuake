@@ -471,9 +471,9 @@ export default function InfoHub() {
         <section className="py-8 md:py-12">
           <div className="text-center mb-8 md:mb-12">
             <h2 className="font-instrument font-bold text-2xl md:text-3xl text-gray-900 mb-4">
-              <span className="text-red-600">Latest</span> <span className="text-quake-dark-blue">Earthquake News</span>
+              <span className="text-quake-dark-blue">Latest</span> <span className="text-quake-dark-blue">Earthquake News</span>
             </h2>
-            <div className="w-24 h-1 bg-gradient-to-r from-red-600 to-quake-dark-blue mx-auto rounded-full"></div>
+            <div className="w-24 h-1 bg-quake-dark-blue mx-auto rounded-full"></div>
             <p className="text-gray-600 text-sm mt-4 font-instrument">
               Recent earthquake and seismic activity news from the past month
             </p>
@@ -572,7 +572,7 @@ export default function InfoHub() {
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                     <div className="absolute top-4 left-4">
-                      <span className="bg-purple-600 text-white text-xs font-instrument font-semibold px-3 py-1 rounded-full">
+                      <span className="bg-quake-dark-blue text-white text-xs font-instrument font-semibold px-3 py-1 rounded-full">
                         Latest
                       </span>
                     </div>
