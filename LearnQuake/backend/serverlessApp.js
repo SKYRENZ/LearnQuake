@@ -14,21 +14,15 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Health check
-const healthCheck = (req, res) => {
-  res.json({
-    message: 'LearnQuake API is running on Netlify',
-    endpoints: {
-      earthquakes: '/api/earthquakes',
-      map: '/map',
-      footage: '/api/footage',
-      news: '/api/news',
-    },
-  });
-};
+// Logging middleware to debug requests
+app.use((req, res, next) => {
+  console.log('Request:', req.method, req.path, req.body);
+  next();
+});
 
-// Handle root POST for map analysis (when called as /.netlify/functions/map)
+// Handle root POST for map analysis FIRST (when called as /.netlify/functions/map)
 app.post('/', async (req, res) => {
+  console.log('POST / handler hit');
   const { place, magnitude, areaCoverage, coordinates } = req.body;
   
   if (!place || magnitude === undefined || !areaCoverage || !coordinates) {
@@ -40,15 +34,27 @@ app.post('/', async (req, res) => {
 
   try {
     const analysis = await generateMapAnalysis({ place, magnitude, areaCoverage, coordinates });
-    res.json({ success: true, analysis });
+    return res.json({ success: true, analysis });
   } catch (error) {
     console.error('Map analysis error:', error);
-    res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: error.message });
   }
 });
 
-// Mount routes
-app.get('/', healthCheck);
+// Health check GET AFTER POST
+app.get('/', (req, res) => {
+  res.json({
+    message: 'LearnQuake API is running on Netlify',
+    endpoints: {
+      earthquakes: '/api/earthquakes',
+      map: '/map',
+      footage: '/api/footage',
+      news: '/api/news',
+    },
+  });
+});
+
+// Mount other routes
 app.use('/api/earthquakes', earthquakeRoutes);
 app.use('/map', mapRoutes);
 app.use('/api/footage', footageRoutes);
