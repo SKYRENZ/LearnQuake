@@ -2,9 +2,7 @@ import { useState } from 'react';
 import Header from '../components/Header';
 import InfoCardModal from '../components/ui/InfoCardModal';
 
-import leftArrow from '../assets/InfoHub/left-arrow.png';
-import rightArrow from '../assets/InfoHub/right-arrow.png';
-
+import arrow from '../assets/InfoHub/arrow.png';
 import topLeft from '../assets/InfoHub/top-left.png';
 import recentEarthquakeNews from '../assets/InfoHub/Recent Earthquake News.png';
 import seismology from '../assets/InfoHub/Seismology.png';
@@ -18,11 +16,17 @@ import third from '../assets/InfoHub/3.png';
 export default function InfoHub() {
   // Enhanced shadow styles for better visual depth
   const cardShadow = { 
-    boxShadow: '0 8px 25px rgba(0, 0, 0, 0.1), 0 4px 10px rgba(0, 0, 0, 0.05)' 
+    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04)' 
   };
   const hoverShadow = { 
-    boxShadow: '0 15px 35px rgba(0, 0, 0, 0.15), 0 8px 15px rgba(0, 0, 0, 0.08)' 
+    boxShadow: '0 8px 30px rgba(0, 0, 0, 0.12), 0 4px 12px rgba(0, 0, 0, 0.06)' 
   };
+  
+  // Get today's date
+  const today = new Date();
+  const dayName = today.toLocaleDateString('en-US', { weekday: 'long' });
+  const monthName = today.toLocaleDateString('en-US', { month: 'long' });
+  const dayNumber = today.getDate();
   
   // Modal state
   const [modalOpen, setModalOpen] = useState(false);
@@ -123,7 +127,7 @@ export default function InfoHub() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
+    <div className="min-h-screen bg-white">
       <Header />
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -132,7 +136,7 @@ export default function InfoHub() {
           <div className="relative flex items-center justify-center">
             <div className="absolute left-0">
               <p className="font-instrument font-bold text-sm md:text-base text-quake-dark-blue">
-                Friday, <span className="text-quake-medium-blue">September 29</span>
+                {dayName}, <span className="text-quake-medium-blue">{monthName} {dayNumber}</span>
               </p>
             </div>
 
@@ -145,19 +149,19 @@ export default function InfoHub() {
         {/* Information Cards Section */}
         <div className="relative py-4 md:py-6">
           {/* Left Text + Arrow */}
-          <div className="absolute -left-16 top-1/2 transform -translate-y-1/2 hidden lg:flex lg:flex-col lg:items-center">
-            <h3 className="font-instrument font-bold text-lg text-quake-dark-blue text-center w-48 mb-2">
+          <div className="absolute -left-24 top-1/2 transform -translate-y-1/2 hidden lg:flex lg:flex-col lg:items-center z-20">
+            <h3 className="font-instrument font-bold text-lg text-quake-dark-blue text-center w-48 mb-4">
               What to do during an Earthquake?
             </h3>
-            <img src={leftArrow} alt="Left Arrow" className="w-6 h-6" />
+            <img src={arrow} alt="Left Arrow" className="w-12 h-12 transform rotate-45 opacity-80 hover:opacity-100 transition-opacity duration-300" />
           </div>
 
           {/* Right Text + Arrow */}
-          <div className="absolute right-0 top-1/2 transform -translate-y-1/2 hidden lg:flex lg:flex-col lg:items-center">
-            <h3 className="font-instrument font-bold text-lg text-quake-dark-blue text-center w-56 mb-2">
+          <div className="absolute right-0 top-1/2 transform -translate-y-1/2 hidden lg:flex lg:flex-col lg:items-center z-20">
+            <h3 className="font-instrument font-bold text-lg text-quake-dark-blue text-center w-56 mb-4">
               What should you <span className="text-quake-light-purple">know about</span> Earthquake
             </h3>
-            <img src={rightArrow} alt="Right Arrow" className="w-6 h-6" />
+            <img src={arrow} alt="Right Arrow" className="w-12 h-12 transform -rotate-45 scale-x-[-1] opacity-80 hover:opacity-100 transition-opacity duration-300" />
           </div>
 
           {/* Main content layout */}
@@ -165,19 +169,17 @@ export default function InfoHub() {
             {/* Top Row - 3 cards */}
             <div className="flex justify-center items-center gap-4">
               <div
-                className="group bg-white rounded-xl overflow-hidden cursor-pointer transition-all duration-500 hover:scale-110 hover:-translate-y-2 relative z-10"
-                style={{ width: '150px', height: '120px', ...cardShadow }}
+                className="group rounded-xl overflow-hidden cursor-pointer transition-all duration-500 hover:scale-110 hover:-translate-y-2 relative z-10 shadow-lg hover:shadow-xl"
+                style={{ width: '172px', height: '138px' }}
                 onClick={() => handleCardClick('topLeft')}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.boxShadow = hoverShadow.boxShadow;
                   e.currentTarget.style.zIndex = '20';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.boxShadow = cardShadow.boxShadow;
                   e.currentTarget.style.zIndex = '10';
                 }}
               >
-                <div className="relative overflow-hidden">
+                <div className="relative overflow-hidden rounded-xl">
                   <img src={topLeft} alt="What to do during an Earthquake" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                   <div className="absolute bottom-2 left-2 right-2 text-white text-xs font-instrument font-bold opacity-0 group-hover:opacity-100 transition-opacity duration-300">
@@ -187,66 +189,60 @@ export default function InfoHub() {
               </div>
 
               <div
-                className="group bg-white rounded-xl overflow-hidden cursor-pointer transition-all duration-500 hover:scale-110 hover:-translate-y-2 relative z-10"
-                style={{ width: '150px', height: '180px', ...cardShadow }}
+                className="group rounded-xl overflow-hidden cursor-pointer transition-all duration-500 hover:scale-110 hover:-translate-y-2 relative z-10 shadow-lg hover:shadow-xl"
+                style={{ width: '172px', height: '207px' }}
                 onClick={() => handleCardClick('recentNews')}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.boxShadow = hoverShadow.boxShadow;
                   e.currentTarget.style.zIndex = '20';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.boxShadow = cardShadow.boxShadow;
                   e.currentTarget.style.zIndex = '10';
                 }}
               >
-                <div className="relative overflow-hidden">
+                <div className="relative overflow-hidden rounded-xl">
                   <img src={recentEarthquakeNews} alt="Recent Earthquake News" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                   <div className="absolute bottom-2 left-2 right-2 text-white text-xs font-instrument font-bold opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                     Click to learn more
                   </div>
-              </div>
+                </div>
               </div>
 
               <div
-                className="group bg-white rounded-xl overflow-hidden cursor-pointer transition-all duration-500 hover:scale-110 hover:-translate-y-2 relative z-10"
-                style={{ width: '200px', height: '120px', ...cardShadow }}
+                className="group rounded-xl overflow-hidden cursor-pointer transition-all duration-500 hover:scale-110 hover:-translate-y-2 relative z-10 shadow-lg hover:shadow-xl"
+                style={{ width: '230px', height: '138px' }}
                 onClick={() => handleCardClick('seismology')}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.boxShadow = hoverShadow.boxShadow;
                   e.currentTarget.style.zIndex = '20';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.boxShadow = cardShadow.boxShadow;
                   e.currentTarget.style.zIndex = '10';
                 }}
               >
-                <div className="relative overflow-hidden">
+                <div className="relative overflow-hidden rounded-xl">
                   <img src={seismology} alt="Seismology" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                   <div className="absolute bottom-2 left-2 right-2 text-white text-xs font-instrument font-bold opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                     Click to learn more
                   </div>
-              </div>
+                </div>
               </div>
             </div>
 
             {/* Bottom Row - 3 cards */}
             <div className="flex justify-center items-center gap-4">
               <div
-                className="group bg-white rounded-xl overflow-hidden cursor-pointer transition-all duration-500 hover:scale-110 hover:-translate-y-2 relative z-10"
-                style={{ width: '200px', height: '120px', ...cardShadow }}
+                className="group rounded-xl overflow-hidden cursor-pointer transition-all duration-500 hover:scale-110 hover:-translate-y-2 relative z-10 shadow-lg hover:shadow-xl"
+                style={{ width: '230px', height: '138px' }}
                 onClick={() => handleCardClick('duckCoverHold')}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.boxShadow = hoverShadow.boxShadow;
                   e.currentTarget.style.zIndex = '20';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.boxShadow = cardShadow.boxShadow;
                   e.currentTarget.style.zIndex = '10';
                 }}
               >
-                <div className="relative overflow-hidden">
+                <div className="relative overflow-hidden rounded-xl">
                   <img src={duckCoverHold} alt="Duck, Cover & Hold" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                   <div className="absolute bottom-2 left-2 right-2 text-white text-xs font-instrument font-bold opacity-0 group-hover:opacity-100 transition-opacity duration-300">
@@ -256,41 +252,37 @@ export default function InfoHub() {
               </div>
 
               <div
-                className="group bg-white rounded-xl overflow-hidden cursor-pointer transition-all duration-500 hover:scale-110 hover:-translate-y-2 relative z-10"
-                style={{ width: '150px', height: '90px', ...cardShadow }}
+                className="group rounded-xl overflow-hidden cursor-pointer transition-all duration-500 hover:scale-110 hover:-translate-y-2 relative z-10 shadow-lg hover:shadow-xl"
+                style={{ width: '172px', height: '103px' }}
                 onClick={() => handleCardClick('bottomMid')}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.boxShadow = hoverShadow.boxShadow;
                   e.currentTarget.style.zIndex = '20';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.boxShadow = cardShadow.boxShadow;
                   e.currentTarget.style.zIndex = '10';
                 }}
               >
-                <div className="relative overflow-hidden">
+                <div className="relative overflow-hidden rounded-xl">
                   <img src={bottomMid} alt="Bottom Mid" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                   <div className="absolute bottom-2 left-2 right-2 text-white text-xs font-instrument font-bold opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                     Click to learn more
                   </div>
-          </div>
+                </div>
               </div>
 
               <div
-                className="group bg-white rounded-xl overflow-hidden cursor-pointer transition-all duration-500 hover:scale-110 hover:-translate-y-2 relative z-10"
-                style={{ width: '200px', height: '150px', ...cardShadow }}
+                className="group rounded-xl overflow-hidden cursor-pointer transition-all duration-500 hover:scale-110 hover:-translate-y-2 relative z-10 shadow-lg hover:shadow-xl"
+                style={{ width: '230px', height: '172px' }}
                 onClick={() => handleCardClick('learnAboutEarthquakes')}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.boxShadow = hoverShadow.boxShadow;
                   e.currentTarget.style.zIndex = '20';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.boxShadow = cardShadow.boxShadow;
                   e.currentTarget.style.zIndex = '10';
                 }}
               >
-                <div className="relative overflow-hidden">
+                <div className="relative overflow-hidden rounded-xl">
                   <img src={learnAboutEarthquakes} alt="Learn About Earthquakes" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                   <div className="absolute bottom-2 left-2 right-2 text-white text-xs font-instrument font-bold opacity-0 group-hover:opacity-100 transition-opacity duration-300">
@@ -302,57 +294,55 @@ export default function InfoHub() {
           </div>
         </div>
 
-        {/* Learn Earthquakes Section */}
-        <section className="py-6 md:py-8">
-          <div className="text-center mb-6">
-            <div className="flex items-center justify-center">
-              <div className="flex flex-col items-end mr-6">
-                <div className="w-48 h-0.5 bg-quake-dark-blue mb-1"></div>
-                <div className="w-48 h-0.5 bg-quake-light-purple"></div>
-              </div>
-
-              <h2 className="font-instrument font-bold text-2xl md:text-4xl text-black">
-                Learn <span className="text-quake-dark-blue">Earthquakes</span>
-              </h2>
-
-              <div className="flex flex-col items-start ml-6">
-                <div className="w-40 h-0.5 bg-quake-dark-blue mb-1"></div>
-                <div className="w-40 h-0.5 bg-quake-light-purple"></div>
-              </div>
-            </div>
+        {/* Educational Resources Section */}
+        <section className="py-8 md:py-12">
+          <div className="text-center mb-8 md:mb-12">
+            <h2 className="font-instrument font-bold text-2xl md:text-3xl text-gray-900 mb-4">
+              Educational <span className="text-quake-dark-blue">Resources</span>
+            </h2>
+            <div className="w-24 h-1 bg-gradient-to-r from-quake-dark-blue to-quake-purple mx-auto rounded-full"></div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 py-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+            {/* Card 1 - What to do during Earthquake */}
             <div 
-              className="group bg-white rounded-xl overflow-hidden cursor-pointer transition-all duration-500 hover:scale-105 hover:-translate-y-1 relative z-10" 
+              className="group bg-white rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 hover:scale-105 hover:-translate-y-2 relative" 
               style={cardShadow}
               onClick={() => handleCardClick('topLeft')}
               onMouseEnter={(e) => {
                 e.currentTarget.style.boxShadow = hoverShadow.boxShadow;
-                e.currentTarget.style.zIndex = '20';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.boxShadow = cardShadow.boxShadow;
-                e.currentTarget.style.zIndex = '10';
               }}
             >
-              <div className="p-4 rounded-xl m-4 mb-0 relative overflow-hidden">
-                <img src={first} alt="What to do during earthquake" className="w-full h-40 object-cover rounded-md transition-transform duration-500 group-hover:scale-110" />
-                <div className="absolute inset-4 bg-gradient-to-t from-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-md"></div>
-              </div>
-              <div className="p-4 pt-2">
-                <h3 className="font-instrument font-bold text-lg text-center transition-colors duration-300 group-hover:text-quake-purple">
-                  <span className="text-quake-dark-blue">What to do during an</span>
-                  <span className="text-black"> Earthquake?</span>
-                </h3>
-                <div className="text-center mt-2">
-                  <span className="text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300">Click to learn more</span>
+              <div className="aspect-[4/3] relative overflow-hidden">
+                <img 
+                  src={first} 
+                  alt="What to do during earthquake" 
+                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" 
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <div className="absolute bottom-4 left-4 right-4">
+                  <p className="text-white text-sm font-instrument font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    Click to learn more
+                  </p>
                 </div>
+              </div>
+              <div className="p-6">
+                <h3 className="font-instrument font-bold text-lg md:text-xl text-center transition-colors duration-300 group-hover:text-quake-purple mb-2">
+                  <span className="text-quake-dark-blue">What to do during an</span>
+                  <span className="text-gray-900"> Earthquake?</span>
+                </h3>
+                <p className="text-sm text-gray-600 text-center">
+                  Essential safety procedures and actions to take when an earthquake occurs
+                </p>
               </div>
             </div>
 
+            {/* Card 2 - Emergency Hotlines */}
             <div 
-              className="group bg-white rounded-xl overflow-hidden cursor-pointer transition-all duration-500 hover:scale-105 hover:-translate-y-1 relative z-10" 
+              className="group bg-white rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 hover:scale-105 hover:-translate-y-2 relative" 
               style={cardShadow}
               onClick={() => {
                 setSelectedCard({
@@ -375,30 +365,38 @@ export default function InfoHub() {
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.boxShadow = hoverShadow.boxShadow;
-                e.currentTarget.style.zIndex = '20';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.boxShadow = cardShadow.boxShadow;
-                e.currentTarget.style.zIndex = '10';
               }}
             >
-              <div className="p-4 rounded-xl m-4 mb-0 relative overflow-hidden">
-                <img src={second} alt="Emergency Hotlines" className="w-full h-40 object-cover rounded-md transition-transform duration-500 group-hover:scale-110" />
-                <div className="absolute inset-4 bg-gradient-to-t from-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-md"></div>
+              <div className="aspect-[4/3] relative overflow-hidden">
+                <img 
+                  src={second} 
+                  alt="Emergency Hotlines" 
+                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" 
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <div className="absolute bottom-4 left-4 right-4">
+                  <p className="text-white text-sm font-instrument font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    Click to learn more
+                  </p>
                 </div>
-              <div className="p-4 pt-2">
-                <h3 className="font-instrument font-bold text-lg text-center transition-colors duration-300 group-hover:text-quake-purple">
+              </div>
+              <div className="p-6">
+                <h3 className="font-instrument font-bold text-lg md:text-xl text-center transition-colors duration-300 group-hover:text-quake-purple mb-2">
                   <span className="text-quake-dark-blue">Emergency </span>
-                  <span className="text-black">Hotlines</span>
+                  <span className="text-gray-900">Hotlines</span>
                 </h3>
-                <div className="text-center mt-2">
-                  <span className="text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300">Click to learn more</span>
-                </div>
+                <p className="text-sm text-gray-600 text-center">
+                  Important emergency contact numbers and hotlines for earthquake-related emergencies
+                </p>
               </div>
             </div>
 
-              <div 
-              className="group bg-white rounded-xl overflow-hidden cursor-pointer transition-all duration-500 hover:scale-105 hover:-translate-y-1 relative z-10" 
+            {/* Card 3 - What are Tsunamis */}
+            <div 
+              className="group bg-white rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 hover:scale-105 hover:-translate-y-2 relative md:col-span-2 lg:col-span-1" 
               style={cardShadow}
               onClick={() => {
                 setSelectedCard({
@@ -421,57 +419,52 @@ export default function InfoHub() {
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.boxShadow = hoverShadow.boxShadow;
-                e.currentTarget.style.zIndex = '20';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.boxShadow = cardShadow.boxShadow;
-                e.currentTarget.style.zIndex = '10';
               }}
             >
-              <div className="p-4 rounded-xl m-4 mb-0 relative overflow-hidden">
-                <img src={first} alt="What are tsunamis" className="w-full h-40 object-cover rounded-md transition-transform duration-500 group-hover:scale-110" />
-                <div className="absolute inset-4 bg-gradient-to-t from-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-md"></div>
-              </div>
-              <div className="p-4 pt-2">
-                <h3 className="font-instrument font-bold text-lg text-center transition-colors duration-300 group-hover:text-quake-purple">
-                  <span className="text-black">What are </span>
-                  <span className="text-quake-dark-blue">tsunamis</span>
-                  <span className="text-black">?</span>
-                </h3>
-                <div className="text-center mt-2">
-                  <span className="text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300">Click to learn more</span>
+              <div className="aspect-[4/3] relative overflow-hidden">
+                <img 
+                  src={first} 
+                  alt="What are tsunamis" 
+                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" 
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <div className="absolute bottom-4 left-4 right-4">
+                  <p className="text-white text-sm font-instrument font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    Click to learn more
+                  </p>
                 </div>
+              </div>
+              <div className="p-6">
+                <h3 className="font-instrument font-bold text-lg md:text-xl text-center transition-colors duration-300 group-hover:text-quake-purple mb-2">
+                  <span className="text-gray-900">What are </span>
+                  <span className="text-quake-dark-blue">tsunamis</span>
+                  <span className="text-gray-900">?</span>
+                </h3>
+                <p className="text-sm text-gray-600 text-center">
+                  Learn about tsunamis, their causes, warning signs, and safety measures
+                </p>
               </div>
             </div>
           </div>
         </section>
 
-        {/* Earthquake News Section */}
-        <section className="py-6 md:py-8">
-          <div className="text-center mb-6">
-            <div className="flex items-center justify-center">
-              <div className="flex flex-col items-end mr-6">
-                <div className="w-44 h-0.5 bg-quake-dark-blue mb-1"></div>
-                <div className="w-44 h-0.5 bg-quake-light-purple"></div>
-              </div>
-
-              <h2 className="font-instrument font-bold text-2xl md:text-4xl">
-                <span className="text-quake-purple">Earthquake</span>
-                <span className="text-black"> News</span>
-              </h2>
-
-              <div className="flex flex-col items-start ml-6">
-                <div className="w-44 h-0.5 bg-quake-dark-blue mb-1"></div>
-                <div className="w-44 h-0.5 bg-quake-light-purple"></div>
-              </div>
-            </div>
+        {/* Latest News Section */}
+        <section className="py-8 md:py-12">
+          <div className="text-center mb-8 md:mb-12">
+            <h2 className="font-instrument font-bold text-2xl md:text-3xl text-gray-900 mb-4">
+              <span className="text-quake-purple">Latest</span> <span className="text-gray-900">News</span>
+            </h2>
+            <div className="w-24 h-1 bg-gradient-to-r from-quake-purple to-quake-dark-blue mx-auto rounded-full"></div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 py-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
             {[1, 2, 3].map((n) => (
               <article 
                 key={n} 
-                className="group bg-white border-2 border-gray-200 rounded-xl p-4 cursor-pointer hover:border-quake-purple transition-all duration-500 hover:scale-105 hover:-translate-y-1 relative z-10"
+                className="group bg-white rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 hover:scale-105 hover:-translate-y-2 relative"
                 style={cardShadow}
                 onClick={() => {
                   setSelectedCard({
@@ -498,28 +491,49 @@ export default function InfoHub() {
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.boxShadow = hoverShadow.boxShadow;
-                  e.currentTarget.style.zIndex = '20';
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.boxShadow = cardShadow.boxShadow;
-                  e.currentTarget.style.zIndex = '10';
                 }}
               >
-                <div className="rounded-lg overflow-hidden mb-4 relative">
-                  <img src={third} alt={`News ${n}`} className="w-full h-36 object-cover transition-transform duration-500 group-hover:scale-110" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <div className="aspect-[4/3] relative overflow-hidden">
+                  <img 
+                    src={third} 
+                    alt={`News ${n}`} 
+                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" 
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  <div className="absolute top-4 left-4">
+                    <span className="bg-quake-purple text-white text-xs font-instrument font-semibold px-3 py-1 rounded-full">
+                      Latest
+                    </span>
+                  </div>
+                  <div className="absolute bottom-4 left-4 right-4">
+                    <p className="text-white text-sm font-instrument font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      Click to read full article
+                    </p>
+                  </div>
                 </div>
-                <h3 className="font-instrument font-bold text-lg md:text-xl text-quake-dark-blue mb-2 transition-colors duration-300 group-hover:text-quake-purple">
-                  Biggest Earthquakes in 2025
-                </h3>
-                <p className="font-instrument text-sm text-black leading-relaxed mb-2">
-                  Comprehensive coverage of the most significant seismic events that occurred in 2025, including their impact and aftermath.
-                </p>
-                <p className="font-instrument font-bold text-sm text-quake-purple mb-2">
-                  Asia &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Magnitude 7.5
-                </p>
-                <div className="text-center">
-                  <span className="text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300">Click to read full article</span>
+                <div className="p-6">
+                  <h3 className="font-instrument font-bold text-lg md:text-xl text-gray-900 mb-3 transition-colors duration-300 group-hover:text-quake-purple">
+                    Biggest Earthquakes in 2025
+                  </h3>
+                  <p className="font-instrument text-sm text-gray-600 leading-relaxed mb-4">
+                    Comprehensive coverage of the most significant seismic events that occurred in 2025, including their impact and aftermath.
+                  </p>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-xs font-instrument font-semibold text-quake-dark-blue bg-blue-50 px-2 py-1 rounded">
+                        Asia-Pacific
+                      </span>
+                      <span className="text-xs font-instrument font-semibold text-quake-purple bg-purple-50 px-2 py-1 rounded">
+                        Magnitude 7.5
+                      </span>
+                    </div>
+                    <span className="text-xs text-gray-500 font-instrument">
+                      Jan 15, 2025
+                    </span>
+                  </div>
                 </div>
               </article>
             ))}
