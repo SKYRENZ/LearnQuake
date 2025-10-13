@@ -43,6 +43,7 @@ import {
   findVectorFeatureAtPixel,
   removeMapEventListener,
 } from '../../utils/openlayers';
+import MapBrowserEventType from 'ol/MapBrowserEventType';
 
 interface SimulationMapProps {
   simPlace: string;
@@ -496,7 +497,10 @@ const SimulationMap = forwardRef<SimulationMapHandle, SimulationMapProps>(
         }
       };
 
-      const key = addSingleClickListener(map, handleClick);
+      const key = map.on(
+        MapBrowserEventType.SINGLECLICK,
+        handleClick as unknown as (event: MapBrowserEvent<unknown>) => void,
+      );
       return () => {
         removeMapEventListener(key);
       };
@@ -561,7 +565,10 @@ const SimulationMap = forwardRef<SimulationMapHandle, SimulationMapProps>(
         }
       };
 
-      const moveKey = addPointerMoveListener(map, handleMove);
+      const moveKey = map.on(
+        MapBrowserEventType.POINTERMOVE,
+        handleMove as unknown as (event: MapBrowserEvent<unknown>) => void,
+      );
 
       const handleLeave = () => {
         overlay.setPosition(undefined);
