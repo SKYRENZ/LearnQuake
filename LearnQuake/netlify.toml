@@ -12,20 +12,24 @@
   to = "/.netlify/functions/map"
   status = 200
 
-# News API
+# Earthquake specific endpoints
 [[redirects]]
-  from = "/api/news/*"
-  to = "/.netlify/functions/news/:splat"
+  from = "/api/earthquakes/search"
+  to = "/.netlify/functions/earthquakes-search"
   status = 200
 
-# Footage API
 [[redirects]]
-  from = "/api/footage*"
-  to = "/.netlify/functions/footage:splat"
+  from = "/api/earthquakes/country"
+  to = "/.netlify/functions/earthquakes-by-country"
   status = 200
 
-# Earthquakes API (if you have it)
 [[redirects]]
-  from = "/api/earthquakes*"
-  to = "/.netlify/functions/earthquakes:splat"
+  from = "/api/earthquakes"
+  to = "/.netlify/functions/earthquakes"
+  status = 200
+
+# All other API routes (news, footage, etc.)
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/api/:splat"
   status = 200
