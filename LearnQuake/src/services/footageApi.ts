@@ -1,4 +1,4 @@
-const FOOTAGE_ENDPOINT = import.meta.env.VITE_FOOTAGE_ENDPOINT || 'http://localhost:5000/api/footage';
+const FOOTAGE_ENDPOINT = import.meta.env.VITE_FOOTAGE_ENDPOINT ?? '/api/footage';
 
 export interface FootageItem {
   id: string;

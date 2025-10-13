@@ -6,12 +6,21 @@
   directory = "netlify/functions"
   node_bundler = "esbuild"
 
+[functions.map]
+  node_bundler = "esbuild"
+  external_node_modules = ["express", "serverless-http"]
+
 [[redirects]]
-  from = "/map/*"
-  to = "/.netlify/functions/map"
+  from = "/map"
+  to = "/.netlify/functions/map/map"
   status = 200
 
 [[redirects]]
-  from = "/api/earthquakes/*"
-  to = "/.netlify/functions/earthquakes"
+  from = "/map/*"
+  to = "/.netlify/functions/map/map/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/map/api/:splat"
   status = 200

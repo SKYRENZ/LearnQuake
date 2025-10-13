@@ -7,8 +7,11 @@ class NewsController {
             const news = await newsService.getEarthquakeNews(query, parseInt(pageSize), parseInt(page));
             res.json(news);
         } catch (error) {
-            console.error('Error fetching earthquake news:', error);
-            res.status(500).json({ error: error.message });
+      console.error('Error fetching earthquake news:', error);
+      res.status(500).json({
+        status: 'error',
+        message: 'Failed to fetch earthquake news',
+      });
         }
     }
 
