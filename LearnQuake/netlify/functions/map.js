@@ -6,3 +6,4 @@ export const handler = async (event, context) => {
   return wrapped(event, context);
 };
 
+export { appHandler };
