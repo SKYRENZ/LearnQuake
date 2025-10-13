@@ -5,6 +5,7 @@ import cors from 'cors';
 import earthquakeRoutes from './routes/earthquakeRoutes.js';
 import mapRoutes from './routes/mapRoutes.js';
 import footageRoutes from './routes/footageRoutes.js';
+import newsRoutes from './routes/newsRoutes.js';
 
 const app = express();
 
@@ -16,6 +17,7 @@ app.use(express.json());
 app.use('/api/earthquakes', earthquakeRoutes);
 app.use('/map', mapRoutes);
 app.use('/api/footage', footageRoutes);
+app.use('/api/news', newsRoutes);
 
 // Health check
 app.get('/', (req, res) => {
@@ -25,6 +27,7 @@ app.get('/', (req, res) => {
       earthquakes: '/api/earthquakes',
       map: '/map',
       footage: '/api/footage',
+      news: '/api/news',
     },
   });
 });
