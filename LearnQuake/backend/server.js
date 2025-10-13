@@ -4,7 +4,6 @@ import cors from 'cors';
 import { generateMapAnalysis } from './services/mapAnalysisService.js';
 import earthquakeRoutes from './routes/earthquakeRoutes.js';
 import mapRoutes from './routes/mapRoutes.js';
-import newsRoutes from './routes/newsRoutes.js';
 import footageRoutes from './routes/footageRoutes.js';
 
 const app = express();
@@ -17,7 +16,6 @@ app.use(express.json());
 // Routes
 app.use('/api/earthquakes', earthquakeRoutes);
 app.use('/map', mapRoutes);
-app.use('/api/news', newsRoutes);
 app.use('/api/footage', footageRoutes);
 
 // Health check
@@ -27,7 +25,7 @@ app.get('/', (req, res) => {
     endpoints: {
       earthquakes: '/api/earthquakes',
       map: '/map',
-      news: '/api/news',
+      footage: '/api/footage',
     },
   });
 });
@@ -38,7 +36,7 @@ app.listen(port, () => {
   console.log(
     `Search earthquakes at: http://localhost:${port}/api/earthquakes/search?location=California`,
   );
-  console.log(`Get news at: http://localhost:${port}/api/news`);
+  console.log(`Get footage at: http://localhost:${port}/api/footage`);
 });
 
 // Netlify handler (kept for parity with serverlessApp)

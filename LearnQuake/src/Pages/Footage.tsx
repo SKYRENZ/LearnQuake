@@ -6,7 +6,6 @@ import Cebu from "../assets/Footage/cebu.mp4";
 import { fetchEarthquakeFootage } from "../services/footageApi";
 import type { FootageItem } from "../services/footageApi";
 
-
 export default function Footage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedCard, setSelectedCard] = useState<any>(null);
@@ -42,7 +41,7 @@ export default function Footage() {
       modalContent: (
         <div>
           <video
-            src={Lanao} 
+            src={Lanao}
             controls
             className="w-full rounded-lg mb-6"
           />
@@ -129,14 +128,12 @@ export default function Footage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
-
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         <h1 className="text-3xl font-bold mb-4">Earthquake Footage Library</h1>
         <p className="text-gray-600 mb-8">
           Watch verified earthquake videos captured across the Philippines.
         </p>
 
-        {/* Local Video Footage Section */}
         <section className="mb-12">
           <h2 className="text-2xl font-bold mb-4">Featured Historical Footage</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -166,7 +163,6 @@ export default function Footage() {
           </div>
         </section>
 
-        {/* Online Footage Section */}
         <section>
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-2xl font-bold">Latest Earthquake Videos</h2>

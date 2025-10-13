@@ -4,7 +4,7 @@ import serverless from 'serverless-http';
 import cors from 'cors';
 import earthquakeRoutes from './routes/earthquakeRoutes.js';
 import mapRoutes from './routes/mapRoutes.js';
-import newsRoutes from './routes/newsRoutes.js';
+import footageRoutes from './routes/footageRoutes.js';
 
 const app = express();
 
@@ -15,17 +15,17 @@ app.use(express.json());
 // Routes - adjusted for Netlify Functions base path
 app.use('/api/earthquakes', earthquakeRoutes);
 app.use('/map', mapRoutes);
-app.use('/api/news', newsRoutes);
+app.use('/api/footage', footageRoutes);
 
 // Health check
 app.get('/', (req, res) => {
-  res.json({ 
+  res.json({
     message: 'LearnQuake API is running on Netlify',
     endpoints: {
       earthquakes: '/api/earthquakes',
       map: '/map',
-      news: '/api/news'
-    }
+      footage: '/api/footage',
+    },
   });
 });
 
