@@ -1,328 +1,62 @@
-import React from 'react';
-import { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Header from '../components/Header';
-import { getEndpoint } from '../api/client';
-
-interface EarthquakeData {
-  id: string;
-  magnitude: number;
-  place: string;
-  time: Date;
-  depth: number;
-  latitude: number;
-  longitude: number;
-}
-
-interface SearchResult {
-  searchLocation: {
-    name: string;
-    latitude?: number;
-    longitude?: number;
-    country?: string;
-    fullAddress?: string;
-  };
-  earthquakes: EarthquakeData[];
-  totalFound: number;
-  showing: number;
-  searchMethod?: string;
-}
-
-interface TimeSeriesData {
-  time: number;
-  amplitude: number;
-  frequency: number;
-}
+import { useEarthquakeData } from '../hooks/useEarthquakeData';
+import { useEarthquakeFilters } from '../hooks/useEarthquakeFilters';
+import { useFrequencyControls } from '../hooks/useFrequencyControls';
+import { useSeismicAnalysis } from '../hooks/useSeismicAnalysis';
 
 export default function Seismology() {
-  const [searchQuery, setSearchQuery] = useState('');
   const [locationSearch, setLocationSearch] = useState('');
-  const [frequencyMin, setFrequencyMin] = useState('0.1');
-  const [frequencyMax, setFrequencyMax] = useState('10.0');
-  const [errorMin, setErrorMin] = useState(false);
-  const [errorMax, setErrorMax] = useState(false);
-  const [noise, setNoise] = useState(10);
-  const [earthquakeData, setEarthquakeData] = useState<EarthquakeData[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [searchResult, setSearchResult] = useState<SearchResult | null>(null);
-  
-  // New filtering states
-  const [magnitudeFilter, setMagnitudeFilter] = useState('');
-  const [magnitudeError, setMagnitudeError] = useState(false);
-  const [sortOrder, setSortOrder] = useState<'recent' | 'oldest' | 'magnitude'>('recent');
-
-  // Add new state for selected earthquake
   const [selectedEarthquakeId, setSelectedEarthquakeId] = useState<string | null>(null);
-
-  // Add this state for real-time updates
   const [currentTime, setCurrentTime] = useState(new Date());
 
-  // Generate time series data based on selected earthquake
-  const generateTimeSeriesData = (earthquake: EarthquakeData | null): TimeSeriesData[] => {
-    if (!earthquake) {
-      // Default data when no earthquake is selected
-      return Array.from({ length: 100 }, (_, i) => ({
-        time: i,
-        amplitude: Math.sin(i * 0.1) * 50 + Math.random() * (noise / 2) - (noise / 4),
-        frequency: 1.0
-      }));
-    }
+  // Custom hooks
+  const {
+    earthquakeData,
+    loading,
+    error,
+    searchResult,
+    searchEarthquakes,
+  } = useEarthquakeData();
 
-    const dataPoints = 200;
-    const baseFreq = Math.max(0.1, parseFloat(frequencyMin) || 0.1);
-    const maxFreq = Math.min(20.0, parseFloat(frequencyMax) || 10.0);
-    
-    return Array.from({ length: dataPoints }, (_, i) => {
-      const t = i / 10; // Time in seconds
-      
-      // Create seismic wave pattern based on earthquake properties
-      const primaryWave = Math.sin(t * baseFreq * 2 * Math.PI) * earthquake.magnitude * 10;
-      const secondaryWave = Math.sin(t * (baseFreq * 1.7) * 2 * Math.PI) * earthquake.magnitude * 7;
-      const surfaceWave = Math.sin(t * (baseFreq * 0.8) * 2 * Math.PI) * earthquake.magnitude * 15;
-      
-      // Depth affects wave amplitude (deeper = more attenuated)
-      const depthFactor = Math.exp(-earthquake.depth / 100);
-      
-      // Distance effect simulation
-      const distanceDecay = Math.exp(-t * 0.1);
-      
-      // Combine waves with noise
-      const amplitude = (primaryWave + secondaryWave + surfaceWave) * depthFactor * distanceDecay;
-      const noiseComponent = (Math.random() - 0.5) * (noise / 5);
-      
-      return {
-        time: t,
-        amplitude: amplitude + noiseComponent,
-        frequency: baseFreq + (Math.random() * (maxFreq - baseFreq))
-      };
-    });
-  };
+  const {
+    searchQuery,
+    setSearchQuery,
+    magnitudeFilter,
+    magnitudeError,
+    sortOrder,
+    setSortOrder,
+    filteredEarthquakes,
+    handleMagnitudeChange,
+  } = useEarthquakeFilters(earthquakeData);
+
+  const {
+    frequencyMin,
+    frequencyMax,
+    setFrequencyMin,
+    setFrequencyMax,
+    errorMin,
+    errorMax,
+    setErrorMin,  // Add this
+    setErrorMax,  // Add this
+    noise,
+    setNoise,
+    handleFrequencyChange,
+  } = useFrequencyControls();
 
   // Get selected earthquake object
   const selectedEarthquake = useMemo(() => {
     return earthquakeData.find(eq => eq.id === selectedEarthquakeId) || null;
   }, [earthquakeData, selectedEarthquakeId]);
 
-  // Generate time series data
-  const timeSeriesData = useMemo(() => {
-    return generateTimeSeriesData(selectedEarthquake);
-  }, [selectedEarthquake, noise, frequencyMin, frequencyMax]);
+  const {
+    timeSeriesData,
+    spectralData,
+    createTimeSeriesPath,
+    createSpectralPath,
+  } = useSeismicAnalysis(selectedEarthquake, frequencyMin, frequencyMax, noise);
 
-  // Create SVG path for the time series graph
-  const createTimeSeriesPath = (data: TimeSeriesData[], width: number, height: number) => {
-    if (data.length === 0) return '';
-
-    const maxAmplitude = Math.max(...data.map(d => Math.abs(d.amplitude)));
-    const minAmplitude = -maxAmplitude;
-    
-    const xScale = (index: number) => (index / (data.length - 1)) * width;
-    const yScale = (amplitude: number) => {
-      const normalized = (amplitude - minAmplitude) / (maxAmplitude - minAmplitude);
-      return height - (normalized * height);
-    };
-
-    let path = `M ${xScale(0)} ${yScale(data[0].amplitude)}`;
-    
-    for (let i = 1; i < data.length; i++) {
-      path += ` L ${xScale(i)} ${yScale(data[i].amplitude)}`;
-    }
-    
-    return path;
-  };
-
-  // Generate spectral analysis data based on selected earthquake
-  const generateSpectralData = (earthquake: EarthquakeData | null) => {
-    if (!earthquake) {
-      // Default spectral data when no earthquake is selected
-      return {
-        fft: Array.from({ length: 50 }, (_, i) => ({
-          frequency: i * 0.4,
-          amplitude: Math.random() * 50 + 10
-        })),
-        spectrogram: Array.from({ length: 50 }, (_, i) => ({
-          frequency: i * 0.4,
-          amplitude: Math.random() * 80 + 20
-        }))
-      };
-    }
-
-    const baseFreq = Math.max(0.1, parseFloat(frequencyMin) || 0.1);
-    const maxFreq = Math.min(20.0, parseFloat(frequencyMax) || 10.0);
-    const freqRange = maxFreq - baseFreq;
-    
-    // Generate FFT data based on earthquake properties
-    const fftData = Array.from({ length: 50 }, (_, i) => {
-      const freq = baseFreq + (i / 49) * freqRange;
-      
-      // Main frequency components based on earthquake characteristics
-      let amplitude = 0;
-      
-      // Primary wave frequency (higher frequency, magnitude dependent)
-      const pWaveFreq = baseFreq * 2;
-      if (Math.abs(freq - pWaveFreq) < 1) {
-        amplitude += earthquake.magnitude * 15;
-      }
-      
-      // Secondary wave frequency (medium frequency)
-      const sWaveFreq = baseFreq * 1.2;
-      if (Math.abs(freq - sWaveFreq) < 0.8) {
-        amplitude += earthquake.magnitude * 12;
-      }
-      
-      // Surface wave frequency (lower frequency, highest amplitude)
-      const surfaceWaveFreq = baseFreq * 0.7;
-      if (Math.abs(freq - surfaceWaveFreq) < 0.5) {
-        amplitude += earthquake.magnitude * 20;
-      }
-      
-      // Depth effect - deeper earthquakes have different frequency distribution
-      const depthFactor = Math.exp(-earthquake.depth / 200);
-      amplitude *= depthFactor;
-      
-      // Add some background noise
-      amplitude += Math.random() * (earthquake.magnitude * 2);
-      
-      return {
-        frequency: freq,
-        amplitude: Math.max(0, amplitude)
-      };
-    });
-
-    // Generate Spectrogram data (time-frequency representation)
-    const spectrogramData = Array.from({ length: 50 }, (_, i) => {
-      const freq = baseFreq + (i / 49) * freqRange;
-      
-      let amplitude = 0;
-      
-      // Different frequency patterns over time
-      const timePhase = (i / 50) * Math.PI * 2;
-      
-      // Lower frequencies dominate early (surface waves arrive later)
-      if (freq < baseFreq * 2) {
-        amplitude += earthquake.magnitude * 18 * Math.sin(timePhase + Math.PI);
-      }
-      
-      // Higher frequencies appear first (P-waves)
-      if (freq > baseFreq * 1.5) {
-        amplitude += earthquake.magnitude * 10 * Math.cos(timePhase);
-      }
-      
-      // Magnitude scaling
-      amplitude *= (earthquake.magnitude / 7); // Normalize to typical earthquake range
-      
-      // Depth effect
-      const depthFactor = Math.exp(-earthquake.depth / 150);
-      amplitude *= depthFactor;
-      
-      // Add noise
-      amplitude += Math.random() * (earthquake.magnitude * 3);
-      
-      return {
-        frequency: freq,
-        amplitude: Math.max(0, amplitude)
-      };
-    });
-
-    return {
-      fft: fftData,
-      spectrogram: spectrogramData
-    };
-  };
-
-  // Generate spectral data
-  const spectralData = useMemo(() => {
-    return generateSpectralData(selectedEarthquake);
-  }, [selectedEarthquake, frequencyMin, frequencyMax]);
-
-  // Create SVG path for spectral analysis
-  const createSpectralPath = (data: { frequency: number; amplitude: number }[], width: number, height: number) => {
-    if (data.length === 0) return '';
-
-    const maxAmplitude = Math.max(...data.map(d => d.amplitude));
-    const minAmplitude = 0;
-    
-    const xScale = (index: number) => (index / (data.length - 1)) * width;
-    const yScale = (amplitude: number) => {
-      const normalized = (amplitude - minAmplitude) / (maxAmplitude - minAmplitude);
-      return height - (normalized * height);
-    };
-
-    let path = `M ${xScale(0)} ${yScale(data[0].amplitude)}`;
-    
-    for (let i = 1; i < data.length; i++) {
-      path += ` L ${xScale(i)} ${yScale(data[i].amplitude)}`;
-    }
-    
-    return path;
-  };
-
-  // Updated search function for country-only search
-  const searchEarthquakes = async (country: string) => {
-    if (!country.trim()) return;
-    
-    setLoading(true);
-    setError(null);
-    
-    try {
-      console.log(`🔍 Searching for earthquakes in: "${country}"`);
-      const response = await fetch(
-        getEndpoint('searchByCountry', {
-          country,
-          timeframe: 'month',
-          limit: '50'
-        })
-      );
-      const result = await response.json();
-
-      if (result.success) {
-        setEarthquakeData(result.data.earthquakes);
-        setSearchResult(result.data);
-        
-        console.log(`✅ Search completed for country: ${country}`);
-        console.log(`📊 Found ${result.data.totalFound} earthquakes`);
-      } else {
-        setError(result.error);
-        setEarthquakeData([]);
-        setSearchResult(null);
-      }
-    } catch (err) {
-      setError('Failed to search earthquakes. Make sure the backend server is running.');
-      console.error('Error:', err);
-      setEarthquakeData([]);
-      setSearchResult(null);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Load default earthquakes on component mount
-  useEffect(() => {
-    const loadDefaultEarthquakes = async () => {
-      setLoading(true);
-      try {
-        const response = await fetch(
-          getEndpoint('earthquakes', {
-            timeframe: 'day',
-            limit: '20'
-          })
-        );
-        const result = await response.json();
-
-        if (result.success) {
-          setEarthquakeData(result.data);
-        }
-      } catch (err) {
-        console.error('Error loading default earthquakes:', err);
-        setEarthquakeData([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadDefaultEarthquakes();
-  }, []);
-
-  // Add this useEffect for real-time updates
+  // Real-time updates
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
@@ -331,60 +65,10 @@ export default function Seismology() {
     return () => clearInterval(timer);
   }, []);
 
-  const handleFrequencyChange = (
-    value: string,
-    setValue: React.Dispatch<React.SetStateAction<string>>,
-    setError: React.Dispatch<React.SetStateAction<boolean>>
-  ) => {
-    if (/^\d*\.?\d*$/.test(value)) {
-      setValue(value);
-      setError(false);
-    } else {
-      setValue(value);
-      setError(true);
-    }
-  };
-
   const handleLocationSearch = (e: React.FormEvent) => {
     e.preventDefault();
     searchEarthquakes(locationSearch);
   };
-
-  // Handle magnitude filter change (numbers only)
-  const handleMagnitudeChange = (value: string) => {
-    if (value === '' || /^\d*\.?\d*$/.test(value)) {
-      setMagnitudeFilter(value);
-      setMagnitudeError(false);
-    } else {
-      setMagnitudeFilter(value);
-      setMagnitudeError(true);
-    }
-  };
-
-  // Enhanced filter earthquakes function
-  const filteredEarthquakes = earthquakeData
-    .filter(earthquake => {
-      const textMatch = earthquake.place.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                       earthquake.magnitude.toString().includes(searchQuery) ||
-                       new Date(earthquake.time).toLocaleDateString().includes(searchQuery);
-
-      const magnitudeMatch = magnitudeFilter === '' || 
-                            earthquake.magnitude >= parseFloat(magnitudeFilter);
-
-      return textMatch && magnitudeMatch;
-    })
-    .sort((a, b) => {
-      switch (sortOrder) {
-        case 'recent':
-          return new Date(b.time).getTime() - new Date(a.time).getTime();
-        case 'oldest':
-          return new Date(a.time).getTime() - new Date(b.time).getTime();
-        case 'magnitude':
-          return b.magnitude - a.magnitude;
-        default:
-          return 0;
-      }
-    });
 
   // Get formatted current date
   const currentDate = useMemo(() => {
@@ -392,7 +76,7 @@ export default function Seismology() {
     const monthDay = currentTime.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
     
     return { dayName, monthDay };
-  }, [currentTime]); // Empty dependency array means this runs once when component mounts
+  }, [currentTime]);
 
   return (
     <div className="min-h-screen bg-white">
