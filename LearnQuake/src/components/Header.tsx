@@ -1,10 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import QuakeLearnLogo from '../assets/QuakeLearn-Logo.png';
+import LearnQuakeLogo from '../assets/InfoHub/NEWLEARNQUAKE.png';
 
 const Header = () => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
+  const hitsRef = useRef<HTMLElement[]>([]);
+  const hitIndexRef = useRef(0);
 
   const isActive = (path: string) => {
     if (path === '/' && location.pathname === '/') return true;
@@ -20,34 +23,90 @@ const Header = () => {
     { label: 'About Us', path: '/about' },
   ];
 
+  // On-page search highlighting with Enter/Esc UX
+  useEffect(() => {
+    const main = document.querySelector('main');
+    if (!main) return;
+    const highlightClasses = ['ring-2', 'ring-quake-purple', 'bg-yellow-50'];
+
+    // clear previous
+    main.querySelectorAll('.__search-hit').forEach((el) => {
+      el.classList.remove(...highlightClasses);
+      el.classList.remove('__search-hit');
+    });
+    hitsRef.current = [];
+    hitIndexRef.current = 0;
+
+    const q = searchQuery.trim().toLowerCase();
+    if (q.length === 0) return;
+
+    const candidates = main.querySelectorAll('h1, h2, h3, p, li, article, section');
+    candidates.forEach((el) => {
+      const text = el.textContent || '';
+      if (text.toLowerCase().includes(q)) {
+        el.classList.add('__search-hit');
+        el.classList.add(...highlightClasses);
+        hitsRef.current.push(el as HTMLElement);
+      }
+    });
+
+    if (hitsRef.current[0]) {
+      hitsRef.current[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [searchQuery, location.pathname]);
+
+  const focusNextHit = () => {
+    if (hitsRef.current.length === 0) return;
+    hitIndexRef.current = (hitIndexRef.current + 1) % hitsRef.current.length;
+    hitsRef.current[hitIndexRef.current].scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
+
+  const onSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      focusNextHit();
+    } else if (e.key === 'Escape') {
+      setSearchQuery('');
+    }
+  };
+
   return (
     <header className="w-full bg-white border-b border-gray-200 shadow-sm">
       {/* Top section with logo, search, and main nav */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto pr-4 sm:pr-6 lg:pr-8 pl-0">
         <div className="flex items-center justify-between h-16 md:h-20 py-2">
-          {/* Logo */}
+          {/* Logo - flush left */}
           <div className="flex-shrink-0 flex items-center">
             <img 
-              src={QuakeLearnLogo} 
-              alt="QuakeLearn" 
-              className="h-12 md:h-16 w-auto"
+              src={LearnQuakeLogo} 
+              alt="LEARNQUAKE" 
+              className="h-10 sm:h-12 md:h-16 w-auto"
             />
           </div>
 
-          {/* Desktop Navigation and Search */}
-          <div className="flex flex-1 justify-center items-center space-x-4 lg:space-x-6">
+          {/* Desktop: Search + Nav */}
+          <div className="hidden md:flex flex-1 items-center justify-between gap-6 lg:gap-10 ml-4 sm:ml-6 lg:ml-10 xl:ml-16">
             {/* Search Bar */}
-            <div className="relative">
-              <div className="flex items-center bg-quake-light-gray border-2 border-quake-light-purple rounded-2xl px-3 py-2 w-40 lg:w-56 xl:w-72 shadow-sm hover:shadow-md transition-shadow duration-200">
+            <div className="relative flex-1">
+              <div className="flex items-center bg-quake-light-gray border-2 border-quake-light-purple rounded-2xl px-4 py-2 w-full max-w-xl lg:max-w-2xl xl:max-w-3xl shadow-sm hover:shadow-md transition-shadow duration-200">
                 <input
                   type="text"
-                  placeholder="Search earthquakes..."
+                  placeholder="Search this page..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="bg-transparent text-xs lg:text-sm font-inter font-semibold text-quake-gray placeholder-quake-gray border-none outline-none flex-1"
+                  onKeyDown={onSearchKeyDown}
+                  className="bg-transparent text-sm lg:text-base font-inter font-semibold text-quake-gray placeholder-quake-gray border-none outline-none flex-1"
                 />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="ml-2 text-quake-gray hover:text-black transition-colors"
+                    aria-label="Clear search"
+                  >
+                    ×
+                  </button>
+                )}
                 <svg 
-                  className="w-3 h-3 lg:w-4 lg:h-4 ml-2 text-quake-gray" 
+                  className="w-4 h-4 ml-3 text-quake-gray" 
                   fill="none" 
                   stroke="currentColor" 
                   viewBox="0 0 24 24"
@@ -62,8 +121,8 @@ const Header = () => {
               </div>
             </div>
 
-            {/* Navigation Items */}
-            <nav className="flex items-center space-x-1 lg:space-x-2">
+            {/* Nav */}
+            <nav className="flex items-center space-x-2 lg:space-x-4 xl:space-x-6">
               {navigationItems.map((item) => (
                 <Link
                   key={item.path}
@@ -86,6 +145,8 @@ const Header = () => {
               type="button"
               className="text-gray-500 hover:text-gray-600 focus:outline-none focus:text-gray-600 p-2 rounded-lg hover:bg-gray-50 transition-colors duration-200"
               aria-label="Toggle menu"
+              aria-expanded={mobileOpen}
+              onClick={() => setMobileOpen((v) => !v)}
             >
               <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
@@ -95,50 +156,63 @@ const Header = () => {
         </div>
 
         {/* Mobile Navigation */}
-        <div className="md:hidden border-t border-gray-200 py-6">
-          {/* Mobile Search */}
-          <div className="mb-6">
-            <div className="flex items-center bg-quake-light-gray border-2 border-quake-light-purple rounded-2xl px-4 py-3 shadow-sm w-full">
-              <input
-                type="text"
-                placeholder="Search earthquakes..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="bg-transparent text-sm font-inter font-semibold text-quake-gray placeholder-quake-gray border-none outline-none flex-1"
-              />
-              <svg 
-                className="w-4 h-4 ml-3 text-quake-gray" 
-                fill="none" 
-                stroke="currentColor" 
-                viewBox="0 0 24 24"
-              >
-                <path 
-                  strokeLinecap="round" 
-                  strokeLinejoin="round" 
-                  strokeWidth={2} 
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" 
+        {mobileOpen && (
+          <div className="md:hidden border-top border-gray-200 py-6 animate-in fade-in-0 duration-200">
+            {/* Mobile Search */}
+            <div className="mb-4">
+              <div className="flex items-center bg-quake-light-gray border-2 border-quake-light-purple rounded-2xl px-4 py-3 shadow-sm w-full">
+                <input
+                  type="text"
+                  placeholder="Search this page..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={onSearchKeyDown}
+                  className="bg-transparent text-sm font-inter font-semibold text-quake-gray placeholder-quake-gray border-none outline-none flex-1"
                 />
-              </svg>
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="ml-2 text-quake-gray hover:text-black transition-colors"
+                    aria-label="Clear search"
+                  >
+                    ×
+                  </button>
+                )}
+                <svg 
+                  className="w-4 h-4 ml-3 text-quake-gray" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                >
+                  <path 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round" 
+                    strokeWidth={2} 
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" 
+                  />
+                </svg>
+              </div>
             </div>
-          </div>
 
-          {/* Mobile Navigation Items */}
-          <nav className="space-y-3">
-            {navigationItems.map((item) => (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={`block font-inter font-semibold text-sm py-3 px-4 rounded-xl transition-all duration-200 ${
-                  isActive(item.path)
-                    ? 'bg-quake-light-purple text-quake-light-gray shadow-sm'
-                    : 'text-black hover:text-quake-purple hover:bg-gray-50'
-                }`}
-              >
-                {item.label}
-              </Link>
-            ))}
-          </nav>
-        </div>
+            {/* Mobile Navigation Items */}
+            <nav className="space-y-3">
+              {navigationItems.map((item) => (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  onClick={() => setMobileOpen(false)}
+                  className={`block font-inter font-semibold text-sm py-3 px-4 rounded-xl transition-all duration-200 ${
+                    isActive(item.path)
+                      ? 'bg-quake-light-purple text-quake-light-gray shadow-sm'
+                      : 'text-black hover:text-quake-purple hover:bg-gray-50'
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </nav>
+          </div>
+        )}
       </div>
 
       {/* Decorative border lines */}
