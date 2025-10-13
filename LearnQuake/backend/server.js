@@ -5,6 +5,7 @@ import { generateMapAnalysis } from './services/mapAnalysisService.js';
 import earthquakeRoutes from './routes/earthquakeRoutes.js';
 import mapRoutes from './routes/mapRoutes.js';
 import newsRoutes from './routes/newsRoutes.js';
+import footageRoutes from './routes/footageRoutes.js';
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -17,6 +18,7 @@ app.use(express.json());
 app.use('/api/earthquakes', earthquakeRoutes);
 app.use('/map', mapRoutes);
 app.use('/api/news', newsRoutes);
+app.use('/api/footage', footageRoutes);
 
 // Health check
 app.get('/', (req, res) => {
