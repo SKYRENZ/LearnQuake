@@ -5,6 +5,8 @@
 [functions]
   directory = "netlify/functions"
   node_bundler = "esbuild"
+  external_node_modules = ["express"]
+  included_files = ["backend/**"]
 
 # Map analysis - dedicated function
 [[redirects]]
