@@ -57,4 +57,11 @@ export async function generateMapAnalysis({ place, magnitude, areaCoverage, coor
   }
 }
 
-export default { generateMapAnalysis };
+// New data sources for geological features
+export const GEOLOGICAL_DATA_SOURCES = {
+  HISTORICAL_EARTHQUAKES: 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_month.geojson',
+  TSUNAMI_ZONES: 'https://raw.githubusercontent.com/your-repo/tsunami-zones-philippines.geojson', // You'll need to host this
+  ACTIVE_VOLCANOES: 'https://raw.githubusercontent.com/your-repo/philippines-volcanoes.geojson', // You'll need to host this
+};
+
+export default { generateMapAnalysis, GEOLOGICAL_DATA_SOURCES };
