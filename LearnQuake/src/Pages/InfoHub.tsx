@@ -33,9 +33,9 @@ export default function InfoHub() {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedCard, setSelectedCard] = useState<any>(null);
 
-  // Add news hook
+  // Updated query for latest earthquake news
   const { news, loading: newsLoading, error: newsError } = useNews(
-    'earthquake OR seismic OR tremor OR "geological survey" OR magnitude OR richter', 
+    'latest earthquake news', // Simpler, more focused query
     6
   );
 
@@ -471,9 +471,12 @@ export default function InfoHub() {
         <section className="py-8 md:py-12">
           <div className="text-center mb-8 md:mb-12">
             <h2 className="font-instrument font-bold text-2xl md:text-3xl text-gray-900 mb-4">
-              <span className="text-quake-purple">Latest</span> <span className="text-gray-900">News</span>
+              <span className="text-red-600">Latest</span> <span className="text-quake-dark-blue">Earthquake News</span>
             </h2>
-            <div className="w-24 h-1 bg-gradient-to-r from-quake-purple to-quake-dark-blue mx-auto rounded-full"></div>
+            <div className="w-24 h-1 bg-gradient-to-r from-red-600 to-quake-dark-blue mx-auto rounded-full"></div>
+            <p className="text-gray-600 text-sm mt-4 font-instrument">
+              Recent earthquake and seismic activity news from the past month
+            </p>
           </div>
 
          {newsLoading && (

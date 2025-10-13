@@ -21,16 +21,26 @@ class NewsService {
         try {
             console.log('Making request to NewsAPI with query:', query);
             
-            // First try with specific earthquake terms
+            // Get date from 1 month ago
+            const oneMonthAgo = new Date();
+            oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+            const fromDate = oneMonthAgo.toISOString().split('T')[0];
+            
+            console.log('Searching from date:', fromDate);
+            
+            // Enhanced earthquake-specific query
+            const earthquakeQuery = 'earthquake OR seismic OR tremor OR "magnitude" OR "richter scale" OR aftershock OR "geological survey" OR "tectonic plates" OR "fault line"';
+            
             let response = await axios.get(`${this.baseUrl}/everything`, {
                 params: {
-                    q: query,
+                    q: earthquakeQuery,
                     apiKey: apiKey,
-                    pageSize: pageSize * 2, // Get more results to filter
+                    pageSize: pageSize * 3, // Get more results to filter better
                     page,
-                    sortBy: 'publishedAt',
+                    sortBy: 'publishedAt', // Most recent first
                     language: 'en',
-                    from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] // Last 30 days
+                    from: fromDate, // Only articles from the last month
+                    searchIn: 'title,description' // Search in title and description for better relevance
                 }
             });
             
@@ -39,31 +49,50 @@ class NewsService {
             
             let articles = response.data.articles || [];
             
-            // Filter articles to ensure they're earthquake-related
-            const earthquakeKeywords = ['earthquake', 'seismic', 'tremor', 'magnitude', 'richter', 'geological', 'usgs', 'fault', 'aftershock'];
+            // Enhanced filtering for earthquake relevance
+            const earthquakeKeywords = [
+                'earthquake', 'seismic', 'tremor', 'magnitude', 'richter', 
+                'aftershock', 'geological', 'usgs', 'fault', 'tectonic',
+                'epicenter', 'tsunami', 'shake', 'quake'
+            ];
+            
             const filteredArticles = articles.filter(article => {
                 const titleAndDesc = (article.title + ' ' + (article.description || '')).toLowerCase();
-                return earthquakeKeywords.some(keyword => titleAndDesc.includes(keyword));
+                const earthquakeScore = earthquakeKeywords.reduce((score, keyword) => {
+                    return score + (titleAndDesc.includes(keyword) ? 1 : 0);
+                }, 0);
+                
+                // Require at least 1 earthquake-related keyword
+                return earthquakeScore >= 1;
+            }).sort((a, b) => {
+                // Sort by recency within filtered results
+                return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
             });
 
             console.log(`Filtered ${articles.length} articles down to ${filteredArticles.length} earthquake-related articles`);
             
-            // If we don't have enough earthquake articles, try science category
+            // If we still don't have enough, try a more specific recent earthquake search
             if (filteredArticles.length < pageSize) {
-                console.log('Not enough earthquake articles, trying science headlines...');
-                const scienceResponse = await this.getTopHeadlines('science', 'us');
-                const scienceArticles = scienceResponse.articles || [];
+                console.log('Trying more specific recent earthquake search...');
                 
-                // Filter science articles for earthquake content
-                const moreEarthquakeArticles = scienceArticles.filter(article => {
-                    const titleAndDesc = (article.title + ' ' + (article.description || '')).toLowerCase();
-                    return earthquakeKeywords.some(keyword => titleAndDesc.includes(keyword));
+                const recentEarthquakeQuery = '"recent earthquake" OR "earthquake today" OR "earthquake yesterday" OR "latest earthquake" OR "breaking earthquake"';
+                
+                const recentResponse = await axios.get(`${this.baseUrl}/everything`, {
+                    params: {
+                        q: recentEarthquakeQuery,
+                        apiKey: apiKey,
+                        pageSize: pageSize,
+                        sortBy: 'publishedAt',
+                        language: 'en',
+                        from: fromDate
+                    }
                 });
                 
-                console.log(`Found ${moreEarthquakeArticles.length} additional earthquake articles from science category`);
+                const recentArticles = recentResponse.data.articles || [];
+                console.log(`Found ${recentArticles.length} additional recent earthquake articles`);
                 
                 // Combine and deduplicate
-                const combined = [...filteredArticles, ...moreEarthquakeArticles];
+                const combined = [...filteredArticles, ...recentArticles];
                 const unique = combined.filter((article, index, self) => 
                     index === self.findIndex(a => a.title === article.title)
                 );
