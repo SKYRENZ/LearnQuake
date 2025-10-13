@@ -5,5 +5,3 @@ export const handler = async (event, context) => {
   const wrapped = serverless(app);
   return wrapped(event, context);
 };
-
-export { appHandler };

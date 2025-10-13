@@ -15,3 +15,23 @@
   from = "/api/earthquakes/*"
   to = "/.netlify/functions/earthquakes"
   status = 200
+
+[[redirects]]
+  from = "/api/news"
+  to = "/.netlify/functions/map"
+  status = 200
+
+[[redirects]]
+  from = "/api/news/*"
+  to = "/.netlify/functions/map"
+  status = 200
+
+[[redirects]]
+  from = "/api/footage"
+  to = "/.netlify/functions/map"
+  status = 200
+
+[[redirects]]
+  from = "/api/footage/*"
+  to = "/.netlify/functions/map"
+  status = 200

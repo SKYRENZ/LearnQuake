@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 interface NewsArticle {
   title: string;
@@ -23,8 +23,13 @@ export const useNews = (query: string = 'earthquake', pageSize: number = 6) => {
   const [news, setNews] = useState<NewsArticle[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const controllerRef = useRef<AbortController | null>(null);
 
   const fetchNews = useCallback(async () => {
+    const controller = new AbortController();
+    controllerRef.current?.abort();
+    controllerRef.current = controller;
+
     try {
       setLoading(true);
       setError(null);
@@ -37,7 +42,9 @@ export const useNews = (query: string = 'earthquake', pageSize: number = 6) => {
         pageSize: pageSize.toString(),
       });
       
-      const response = await fetch(`${endpoint}?${params.toString()}`, { signal });
+      const response = await fetch(`${endpoint}?${params.toString()}`, {
+        signal: controller.signal,
+      });
       
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: Failed to fetch news`);
@@ -69,6 +76,12 @@ export const useNews = (query: string = 'earthquake', pageSize: number = 6) => {
   useEffect(() => {
     fetchNews();
   }, [fetchNews]);
+
+  useEffect(() => {
+    return () => {
+      controllerRef.current?.abort();
+    };
+  }, []);
 
   return { news, loading, error, refetch: fetchNews };
 };
