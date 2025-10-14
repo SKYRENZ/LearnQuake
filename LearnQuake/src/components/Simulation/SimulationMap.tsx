@@ -30,7 +30,6 @@ import type Geometry from 'ol/geom/Geometry';
 import Overlay from 'ol/Overlay';
 import { fromLonLat, toLonLat } from 'ol/proj';
 import type MapBrowserEvent from 'ol/MapBrowserEvent';
-import SimulationSearchPanel from './SimulationSearchPanel';
 import type { NominatimResult, SelectedSimulationEvent } from './types';
 import type {
   SimulationAnalysis,
@@ -993,21 +992,21 @@ const SimulationMap = forwardRef<SimulationMapHandle, SimulationMapProps>(
       ref,
       () => ({
         commitSimulation: commitSimulatedEvent,
+        flyToLocation: ([lon, lat]: [number, number]) => {
+          if (mapRef.current) {
+            mapRef.current.getView().animate({
+              center: fromLonLat([lon, lat]),
+              zoom: 7,
+              duration: 1200,
+            });
+          }
+        },
       }),
       [commitSimulatedEvent],
     );
 
     return (
       <div className="relative w-full h-full">
-        <SimulationSearchPanel
-          query={query}
-          setQuery={setQuery}
-          isSearching={isSearching}
-          results={results}
-          onSearch={performSearch}
-          onSelectResult={handleSelectSearchResult}
-        />
-        
         {/* Layer Controls Drawer */}
         <div className="absolute top-4 right-4 z-10 flex flex-col items-end">
           {/* Toggle Button - Always Visible */}

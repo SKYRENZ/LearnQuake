@@ -39,6 +39,30 @@ export default function Simulation() {
     simulationMapRef.current?.commitSimulation();
   };
 
+  const searchLocationOnMap = async (location: string) => {
+    if (!location.trim()) return;
+    try {
+      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+        location
+      )}&limit=1`;
+      const res = await fetch(url, { headers: { Accept: 'application/json' } });
+      const data = await res.json();
+      if (data[0]) {
+        const lon = parseFloat(data[0].lon);
+        const lat = parseFloat(data[0].lat);
+        setSimPlace(data[0].display_name);
+        // Move map if ref is available
+        if (simulationMapRef.current && simulationMapRef.current.flyToLocation) {
+          simulationMapRef.current.flyToLocation([lon, lat]);
+        }
+      } else {
+        alert('Location not found.');
+      }
+    } catch (err) {
+      alert('Location search failed.');
+    }
+  };
+
   return (
     <div className="flex flex-col h-screen overflow-hidden">
       <Header />

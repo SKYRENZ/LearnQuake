@@ -4,6 +4,7 @@ import type {
   SimulationMeta,
 } from '../../hooks/useSimulationAnalysis';
 import type { SelectedSimulationEvent } from './types';
+import { useState } from 'react';
 
 interface SimulationSidebarProps {
   simPlace: string;
@@ -20,6 +21,7 @@ interface SimulationSidebarProps {
   selected: SelectedSimulationEvent | null;
   simSummaryMeta: SimulationMeta | null;
   simSummaryAnalysis: SimulationAnalysis | null;
+  searchLocationOnMap: (location: string) => Promise<void>;
 }
 
 export default function SimulationSidebar({
@@ -37,7 +39,23 @@ export default function SimulationSidebar({
   selected,
   simSummaryMeta,
   simSummaryAnalysis,
+  searchLocationOnMap,
 }: SimulationSidebarProps) {
+  const [searching, setSearching] = useState(false);
+
+  async function searchLocation() {
+    setSearching(true);
+    await searchLocationOnMap(simPlace);
+    setSearching(false);
+  }
+
+  function handleLocationKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      searchLocation();
+    }
+  }
+
   return (
     <div className="relative flex flex-col md:w-80 lg:w-96 p-4 border-r border-white/10 bg-quake-dark-blue overflow-y-auto">
       <h2 className="text-lg font-bold mb-4">Earthquake Simulator</h2>
@@ -57,15 +75,26 @@ export default function SimulationSidebar({
           >
             Location
           </label>
-          <input
-            type="text"
-            id="location"
-            value={simPlace}
-            onChange={(e) => setSimPlace(e.target.value)}
-            disabled={pickingSimLocation}
-            className="mt-1 block w-full p-2 text-sm rounded-md bg-white/5 border border-white/10 focus:ring-1 focus:ring-blue-500 focus:outline-none"
-            placeholder="Enter a location"
-          />
+          <div className="flex gap-2">
+            <input
+              type="text"
+              id="location"
+              value={simPlace}
+              onChange={(e) => setSimPlace(e.target.value)}
+              onKeyDown={handleLocationKeyDown}
+              disabled={pickingSimLocation}
+              className="mt-1 block w-full p-2 text-sm rounded-md bg-white/5 border border-white/10 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+              placeholder="Enter a location"
+            />
+            <button
+              type="button"
+              onClick={searchLocation}
+              disabled={searching || pickingSimLocation || !simPlace.trim()}
+              className="px-3 py-2 text-sm font-semibold rounded-md bg-quake-red-600 hover:bg-quake-red-700 text-white disabled:opacity-50"
+            >
+              {searching ? 'Searching…' : 'Search'}
+            </button>
+          </div>
         </div>
 
         {/* Magnitude Input */}
