@@ -26,8 +26,12 @@ export const useNews = (query: string = 'earthquake', pageSize: number = 6) => {
   const controllerRef = useRef<AbortController | null>(null);
 
   const fetchNews = useCallback(async () => {
+    // Abort previous request if it exists
+    if (controllerRef.current) {
+      controllerRef.current.abort();
+    }
+
     const controller = new AbortController();
-    controllerRef.current?.abort();
     controllerRef.current = controller;
 
     try {
@@ -41,7 +45,7 @@ export const useNews = (query: string = 'earthquake', pageSize: number = 6) => {
         query: query,
         pageSize: pageSize.toString(),
       });
-      
+
       const response = await fetch(`${endpoint}?${params.toString()}`, {
         signal: controller.signal,
       });
@@ -55,7 +59,6 @@ export const useNews = (query: string = 'earthquake', pageSize: number = 6) => {
       console.log('Total articles found:', data.totalResults);
       console.log('Articles received:', data.articles?.length);
       
-      // Log first few article titles for debugging
       if (data.articles?.length > 0) {
         console.log('First 3 article titles:');
         data.articles.slice(0, 3).forEach((article, index) => {
@@ -63,25 +66,40 @@ export const useNews = (query: string = 'earthquake', pageSize: number = 6) => {
         });
       }
       
-      setNews(data.articles || []);
+      // Only update state if this request wasn't aborted
+      if (!controller.signal.aborted) {
+        setNews(data.articles || []);
+      }
     } catch (err) {
+      // Ignore abort errors - they're expected when component unmounts or query changes
+      if (err instanceof Error && err.name === 'AbortError') {
+        console.log('Request aborted (expected in dev mode or on unmount)');
+        return;
+      }
+      
       const errorMessage = err instanceof Error ? err.message : 'An error occurred';
       console.error('News fetch error:', err);
-      setError(errorMessage);
+      
+      // Only set error if not aborted
+      if (!controller.signal.aborted) {
+        setError(errorMessage);
+      }
     } finally {
-      setLoading(false);
+      // Only update loading state if not aborted
+      if (!controller.signal.aborted) {
+        setLoading(false);
+      }
     }
   }, [query, pageSize]);
 
   useEffect(() => {
     fetchNews();
-  }, [fetchNews]);
 
-  useEffect(() => {
+    // Cleanup function to abort on unmount
     return () => {
       controllerRef.current?.abort();
     };
-  }, []);
+  }, [fetchNews]);
 
   return { news, loading, error, refetch: fetchNews };
 };

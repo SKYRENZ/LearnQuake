@@ -22,6 +22,12 @@ export default function Footage() {
     } catch (error) {
       console.error("Failed to fetch earthquake footage:", error);
       setFootage([]);
+      // Show user-friendly error message
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Failed to load earthquake footage. Please make sure the backend server is running."
+      );
     } finally {
       setLoading(false);
     }
